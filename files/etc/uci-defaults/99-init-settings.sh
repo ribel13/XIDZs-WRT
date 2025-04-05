@@ -125,17 +125,14 @@ sed -i -e '/413c:81d7/,+5d' /etc/usb-mode.json
 # Disable /etc/config/xmm-modem
 uci set xmm-modem.@xmm-modem[0].enable='0' && uci commit
 
-# install2.sh
-chmod +x /root/install2.sh
-bash /root/install2.sh
-
 # setup misc settings
 echo "setup misc settings"
 sed -i 's/\[ -f \/etc\/banner \] && cat \/etc\/banner/#&/' /etc/profile
 sed -i 's/\[ -n "$FAILSAFE" \] && cat \/etc\/banner.failsafe/& || \/usr\/bin\/idz/' /etc/profile
-chmod +x /usr/lib/ModemManager/connection.d/10-report-down
 chmod -R +x /sbin
 chmod -R +x /usr/bin
+chmod +x /root/install2.sh
+chmod +x /usr/lib/ModemManager/connection.d/10-report-down
 
 # netdata
 mv /usr/share/netdata/web/lib/jquery-3.6.0.min.js /usr/share/netdata/web/lib/jquery-2.2.4.min.js
@@ -211,6 +208,9 @@ ln -s /usr/bin/php-cli /usr/bin/php
 [ -d /usr/lib/php8 ] && [ ! -d /usr/lib/php ] && ln -sf /usr/lib/php8 /usr/lib/php
 /etc/init.d/uhttpd restart
 
+bash /root/install2.sh
+
 echo "All first boot setup complete!"
 rm -f /etc/uci-defaults/$(basename $0)
+
 exit 0

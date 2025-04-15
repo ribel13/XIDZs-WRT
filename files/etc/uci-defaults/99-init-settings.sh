@@ -16,6 +16,9 @@ elif grep -q "OpenWrt" /etc/openwrt_release; then
 fi
 echo "Tunnel Installed: $(opkg list-installed | grep -e luci-app-openclash -e luci-app-nikki -e luci-app-passwall | awk '{print $1}' | tr '\n' ' ')"
 
+# Set login root password
+(echo "xidz"; sleep 2; echo "xidz") | passwd > /dev/null
+
 # Set hostname and Timezone to Asia/Jakarta
 echo "Set hostname and Timezone to Asia/Jakarta"
 uci set system.@system[0].hostname='XIDZ-WRT'
@@ -107,9 +110,6 @@ echo "custom repo and Disable opkg signature check"
 sed -i 's/option check_signature/# option check_signature/g' /etc/opkg.conf
 echo "src/gz custom_pkg https://dl.openwrt.ai/latest/packages/$(grep "OPENWRT_ARCH" /etc/os-release | awk -F '"' '{print $2}')/kiddin9" >> /etc/opkg/customfeeds.conf
 
-# Set login root password
-(echo "xidz"; sleep 2; echo "xidz") | passwd > /dev/null
-
 # setup default theme
 uci set luci.main.mediaurlbase='/luci-static/argon' && uci commit
 
@@ -125,14 +125,11 @@ sed -i -e '/413c:81d7/,+5d' /etc/usb-mode.json
 # Disable /etc/config/xmm-modem
 uci set xmm-modem.@xmm-modem[0].enable='0' && uci commit
 
-# install2.sh
-chmod +x /root/install2.sh
-bash /root/install2.sh
-
 # setup misc settings
 echo "setup misc settings"
 sed -i 's/\[ -f \/etc\/banner \] && cat \/etc\/banner/#&/' /etc/profile
 sed -i 's/\[ -n "$FAILSAFE" \] && cat \/etc\/banner.failsafe/& || \/usr\/bin\/idz/' /etc/profile
+chmod +x /root/install2.sh && bash /root/install2.sh
 chmod +x /usr/lib/ModemManager/connection.d/10-report-down
 chmod -R +x /sbin
 chmod -R +x /usr/bin
@@ -155,9 +152,6 @@ chmod +x /www/vnstati/vnstati.sh
 
 # Setting Tinyfm
 ln -s / /www/tinyfm/rootfs
-
-# remove
-rm -rf /www/luci-static/resources/view/status/include/25_storage.js
 
 # configurating openclash
 if opkg list-installed | grep luci-app-openclash > /dev/null; then
@@ -196,6 +190,9 @@ else
   rm -rf /etc/config/nikki
   rm -rf /etc/nikki
 fi
+
+# remove
+rm -rf /www/luci-static/resources/view/status/include/25_storage.js
 
 # Setup PHP
 echo "setup php"

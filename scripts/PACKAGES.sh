@@ -31,10 +31,10 @@ packages_custom+=(
     "modeminfo-serial-xmm_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-fibocom_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-sierra_|${REPOS[KIDDIN9]}"
-    "modeminfo-serial-fm350_|${REPOS[KIDDIN9]}"
+    "modeminfo-serial-fm350_|${REPOS[DLLKIDS]}"
     
-    "fm350-modem_|${REPOS[KIDDIN9]}"
-    "luci-proto-fm350_|${REPOS[KIDDIN9]}"
+    "fm350-modem_|${REPOS[DLLKIDS]}"
+    "luci-proto-fm350_|${REPOS[DLLKIDS]}"
     "atinout_|${REPOS[KIDDIN9]}"
     "luci-app-diskman_|${REPOS[KIDDIN9]}"
     "luci-app-poweroff_|${REPOS[KIDDIN9]}"

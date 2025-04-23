@@ -31,7 +31,7 @@ packages_custom+=(
     "modeminfo-serial-xmm_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-fibocom_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-sierra_|${REPOS[KIDDIN9]}"
-    "modeminfo-serial-fm350_|${REPOS[DLLKIDS]}"
+    # "modeminfo-serial-fm350_|${REPOS[DLLKIDS]}"
     
     "fm350-modem_|${REPOS[DLLKIDS]}"
     "luci-proto-fm350_|${REPOS[DLLKIDS]}"

@@ -24,7 +24,7 @@ declare -a packages_custom
 packages_custom+=(
     "modeminfo_|${REPOS[KIDDIN9]}"
     "luci-app-modeminfo_|${REPOS[KIDDIN9]}"
-    "modeminfo-serial-fm350_|${REPOS[KIDDIN9]}"
+    #  "modeminfo-serial-fm350_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-tw_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-dell_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-sierra_|${REPOS[KIDDIN9]}"

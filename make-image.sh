@@ -65,7 +65,7 @@ handle_tunnel_option() {
 }
 
 # Nas and storage
-PACKAGES+=" luci-app-diskman luci-app-tinyfm"
+PACKAGES+=" luci-app-diskman luci-app-tinyfilemanager"
 
 # Bandwidth And Network Monitoring
 PACKAGES+=" internet-detector luci-app-internet-detector vnstat2 vnstati2 luci-app-netmonitor"

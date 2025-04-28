@@ -22,7 +22,7 @@ on:
           - all-device
           - Amlogic s905x HG680P
           - Amlogic s905x B860H
-          - Amlogic s905x4 advan-at01
+          - Amlogic s905x4 Advan
           - Amlogic s912 Nexbox-A1
           - Amlogic s905l2 MGV-M301A
           - Amlogic s905x2 X96Max-v2Gb
@@ -91,7 +91,7 @@ jobs:
             "target": [
               "Amlogic s905x HG680P",
               "Amlogic s905x B860H",
-              "Amlogic s905x4 advan-at01",
+              "Amlogic s905x4 Advan",
               "Amlogic s912 Nexbox-A1",
               "Amlogic s905l2 MGV-M301A",
               "Amlogic s905x2 X96Max-v2Gb",

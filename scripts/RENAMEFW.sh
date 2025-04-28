@@ -95,6 +95,7 @@ rename_firmware() {
         
         # Amlogic Ophub
         "_s905x_|Amlogic_s905x_HG680P"
+        "_s905x4_|Amlogic_s905x4_Advan
         "_s905x-b860h_|Amlogic_s905x_B860H"
         "_s912-nexbox-a1_|Amlogic_s912_NEXBOX_A1"
         "_s905l2_|Amlogic_s905l2_MGV_M301A"

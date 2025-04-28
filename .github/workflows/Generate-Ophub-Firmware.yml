@@ -21,6 +21,7 @@ on:
         options:
           - all-device
           - Amlogic s905x HG680P
+          - Amlogic s905x tbee
           - Amlogic s905x B860H
           - Amlogic s905x4 Advan
           - Amlogic s912 Nexbox-A1
@@ -90,6 +91,7 @@ jobs:
           {
             "target": [
               "Amlogic s905x HG680P",
+              "Amlogic s905x tbee",
               "Amlogic s905x B860H",
               "Amlogic s905x4 Advan",
               "Amlogic s912 Nexbox-A1",
@@ -282,6 +284,12 @@ jobs:
               echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV
               echo "KERNEL=$KERNEL" >> $GITHUB_ENV
               ;;
+            "Amlogic s905x tbee")
+              TARGET_BUILD="s905x-tbee"
+              KERNEL="6.12.y"
+              echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV
+              echo "KERNEL=$KERNEL" >> $GITHUB_ENV
+              ;;  
             "Amlogic s9054 advan-at02")
               TARGET_BUILD="s905x4"
               KERNEL="6.12.y"

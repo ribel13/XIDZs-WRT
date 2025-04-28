@@ -290,7 +290,7 @@ jobs:
               echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV
               echo "KERNEL=$KERNEL" >> $GITHUB_ENV
               ;;  
-            "Amlogic s9054 advan")
+            "Amlogic s905x4 advan")
               TARGET_BUILD="s905x4-advan"
               KERNEL="6.6.y_6.12.y"
               echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV

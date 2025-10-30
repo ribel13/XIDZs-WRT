@@ -42,7 +42,6 @@ packages_custom+=(
     "xmm-modem_|${REPOS[KIDDIN9]}"
     
     "luci-app-lite-watchdog_|${REPOS[KIDDIN9]}"
-    "luci-app-speedtest-web_|${REPOS[KIDDIN9]}"
     "luci-app-macvlan_|${REPOS[KIDDIN9]}"
     "luci-app-fancontrol_|${REPOS[KIDDIN9]}"
     "luci-app-atcommands_|${REPOS[KIDDIN9]}"
@@ -54,18 +53,7 @@ packages_custom+=(
     "luci-app-modemband_|${REPOS[IMMORTALWRT]}/luci"
     "luci-app-sms-tool-js_|${REPOS[IMMORTALWRT]}/luci"
     "dns2tcp_|${REPOS[IMMORTALWRT]}/packages"
-    "luci-theme-argon_|${REPOS[IMMORTALWRT]}/luci"
-    
-    "speedtestcli_|${REPOS[KIDDIN9]}"
-    "luci-app-eqosplus_|${REPOS[KIDDIN9]}"
-    "luci-app-internet-detector_|${REPOS[GSPOTX2F]}"
-    "internet-detector_|${REPOS[GSPOTX2F]}"
-    "internet-detector-mod-modem-restart_|${REPOS[GSPOTX2F]}"
     "luci-app-temp-status_|${REPOS[GSPOTX2F]}"
-    
-    "luci-app-droidnet_|https://api.github.com/repos/animegasan/luci-app-droidmodem/releases/latest"
-    "luci-theme-alpha_|https://api.github.com/repos/derisamedia/luci-theme-alpha/releases/latest"
-    "luci-app-neko_|https://api.github.com/repos/nosignals/openwrt-neko/releases/latest"
 )
 
 if [ "${TYPE}" == "OPHUB" ]; then

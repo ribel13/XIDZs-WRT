@@ -52,12 +52,6 @@ handle_tunnel_option() {
         "nikki")
             PACKAGES+=" $NIKKI"
             ;;
-        "openclash-passwall")
-            PACKAGES+=" $OPENCLASH $PASSWALL"
-            ;;
-        "nikki-openclash")
-            PACKAGES+=" $NIKKI $OPENCLASH"
-            ;;
         "no-tunnel")
             PACKAGES+=""
             ;;
@@ -67,23 +61,8 @@ handle_tunnel_option() {
 # Nas and storage
 PACKAGES+=" luci-app-diskman luci-app-tinyfilemanager"
 
-# Bandwidth And Network Monitoring
-PACKAGES+=" internet-detector luci-app-internet-detector vnstat2 vnstati2 luci-app-netmonitor"
-
-# Remote Services
-PACKAGES+=" tailscale luci-app-tailscale"
-
-# speedtest and limit bandwidth
-PACKAGES+=" speedtestcli luci-app-eqosplus"
-
-# Theme
-PACKAGES+=" luci-theme-argon luci-theme-alpha"
-
 # PHP8
 PACKAGES+=" php8 php8-fastcgi php8-fpm php8-mod-session php8-mod-ctype php8-mod-fileinfo php8-mod-zip php8-mod-iconv php8-mod-mbstring"
-
-# More
-PACKAGES+=" luci-app-poweroff luci-app-ramfree luci-app-ttyd luci-app-lite-watchdog luci-app-ipinfo luci-app-droidnet luci-app-mactodong"
 
 # Handle profile-specific packages
 handle_profile_packages() {

@@ -11,7 +11,7 @@ repackwrt() {
     
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --ophub|--ulo)
+            --ophub)
                 builder_type="$1"
                 shift
                 ;;
@@ -36,7 +36,7 @@ repackwrt() {
 
     # Validate required parameters
     if [[ -z "$builder_type" ]]; then
-        error_msg "Builder type (--ophub or --ulo) is required"
+        error_msg "Builder type (--ophub) is required"
         exit 1
     fi
     
@@ -57,7 +57,6 @@ repackwrt() {
 
     # Define constants
     local readonly OPHUB_REPO="https://github.com/Dirgha80/amlogic-s9xxx-openwrt/archive/refs/heads/main.zip"
-    local readonly ULO_REPO="https://github.com/xidz-repo/ULO-Builder/archive/refs/heads/main.zip"
     local readonly work_dir="$GITHUB_WORKSPACE/$WORKING_DIR"
     
     # Setup directories based on builder type
@@ -66,10 +65,6 @@ repackwrt() {
         builder_dir="${work_dir}/amlogic-s9xxx-openwrt-main"
         repo_url="${OPHUB_REPO}"
         log "STEPS" "Starting firmware repackaging with Ophub..."
-    else
-        builder_dir="${work_dir}/ULO-Builder-main"
-        repo_url="${ULO_REPO}"
-        log "STEPS" "Starting firmware repackaging with UloBuilder..."
     fi
 
     output_dir="${work_dir}/compiled_images"
@@ -137,28 +132,6 @@ repackwrt() {
             exit 1
         fi
         device_output_dir="./openwrt/out"
-    else
-        # Apply ULO patches
-        log "INFO" "Applying UloBuilder patches..."
-        if [[ -f "./.github/workflows/ULO_Workflow.patch" ]]; then
-            mv ./.github/workflows/ULO_Workflow.patch ./ULO_Workflow.patch
-            if ! patch -p1 < ./ULO_Workflow.patch >/dev/null 2>&1; then
-                log "WARNING" "Failed to apply UloBuilder patch"
-            else
-                log "SUCCESS" "UloBuilder patch applied successfully"
-            fi
-        else
-            log "WARNING" "UloBuilder patch not found"
-        fi
-
-        # Run UloBuilder
-        log "INFO" "Running UloBuilder..."
-        local readonly rootfs_basename=$(basename "${target_path}")
-        if ! sudo ./ulo -y -m "${target_board}" -r "${rootfs_basename}" -k "${target_kernel}" -s 1024; then
-            error_msg "UloBuilder execution failed"
-            exit 1
-        fi
-        device_output_dir="./out/${target_board}"
     fi
 
     # Verify and copy output files

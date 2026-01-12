@@ -21,7 +21,7 @@ echo "Tunnel Installed: $(opkg list-installed | grep -e luci-app-openclash -e lu
 
 # Set hostname and Timezone to Asia/Jakarta
 echo "Set hostname and Timezone to Asia/Jakarta"
-uci set system.@system[0].hostname='XIDZ-WRT'
+uci set system.@system[0].hostname='FreedomWrt'
 uci set system.@system[0].timezone='WIB-7'
 uci set system.@system[0].zonename='Asia/Jakarta'
 uci -q delete system.ntp.server

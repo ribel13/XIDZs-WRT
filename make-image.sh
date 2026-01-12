@@ -33,7 +33,8 @@ modemmanager luci-proto-modemmanager usbutils xmm-modem \
 kmod-usb3 kmod-macvlan kmod-nls-utf8 kmod-usb-storage kmod-usb-storage-uas"
 
 # Modem Tools
-PACKAGES+=" modeminfo luci-app-modeminfo atinout modemband luci-app-modemband luci-app-mmconfig sms-tool luci-app-sms-tool-js luci-app-3ginfo-lite picocom minicom"
+#PACKAGES+=" modeminfo luci-app-modeminfo atinout modemband luci-app-modemband luci-app-mmconfig sms-tool luci-app-sms-tool-js luci-app-3ginfo-lite picocom minicom"
+PACKAGES+=" atinout sms-tool luci-app-3ginfo-lite picocom minicom"
 
 # Modem Info
 PACKAGES+=" modeminfo-serial-tw modeminfo-serial-dell modeminfo-serial-xmm modeminfo-serial-fibocom modeminfo-serial-sierra"

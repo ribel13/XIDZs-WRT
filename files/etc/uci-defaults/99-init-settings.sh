@@ -1,213 +1,280 @@
 #!/bin/sh
 
-exec > /root/setup.log 2>&1
+LOG_FILE="/root/setup-xidzswrt.log"
+exec > "$LOG_FILE" 2>&1
 
-# dont remove!
-echo "Installed Time: $(date '+%A, %d %B %Y %T')"
-sed -i "s#_('Firmware Version'),(L.isObject(boardinfo.release)?boardinfo.release.description+' / ':'')+(luciversion||''),#_('Firmware Version'),(L.isObject(boardinfo.release)?boardinfo.release.description+' By Xidz_x':''),#g" /www/luci-static/resources/view/status/include/10_system.js
-sed -i -E "s|icons/port_%s.png|icons/port_%s.gif|g" /www/luci-static/resources/view/status/include/29_ports.js
-sed -i -E "s|services/ttyd|system/ttyd|g"
+# variable
+SYSTEM_JS="/www/luci-static/resources/view/status/include/10_system.js"
+PORTS_JS="/www/luci-static/resources/view/status/include/29_ports.js"
+NEW_PORTS_JS="/www/luci-static/resources/view/status/include/11_ports.js"
+RELEASE_FILE="/etc/openwrt_release"
+TTYD_JSON="/usr/share/luci/menu.d/luci-app-ttyd.json"
+TEMP_JS="/www/luci-static/resources/view/status/include/27_temperature.js"
+NEW_TEMP_JS="/www/luci-static/resources/view/status/include/15_temperature.js"
+XIDZS="/etc/init.d/xidzs"
+RC_LOCAL="/etc/rc.local"
+CRONTAB_ROOT="/etc/crontabs/root"
+USB_MODE="/etc/usb-mode.json"
+OPKG_CONF="/etc/opkg.conf"
+PROFILE="/etc/profile"
+PHP_INI="/etc/php.ini"
+PHP_INI_BAK="/etc/php.ini.bak"
+VNSTAT_CONF="/etc/vnstat.conf"
+INSTALL2_SH="/root/install2.sh"
+QUENXX_SH="/root/quenxx.sh"
+#ALPHA_CONF="/etc/config/alpha"
+#ARGON_CONF="/usr/share/ucode/luci/template/themes/argon/header.ut"
+#RTA_CONF="/usr/lib/lua/luci/view/themes/rtawrt/header.htm"
+
+echo "$(date)"
+
+# Detect system type
+echo "Checking system release..."
 if grep -q "ImmortalWrt" /etc/openwrt_release; then
-  sed -i "s/\(DISTRIB_DESCRIPTION='ImmortalWrt [0-9]*\.[0-9]*\.[0-9]*\).*'/\1'/g" /etc/openwrt_release
-  echo Branch version: "$(grep 'DISTRIB_DESCRIPTION=' /etc/openwrt_release | awk -F"'" '{print $2}')"
+    sed -i 's/\(DISTRIB_DESCRIPTION='\''ImmortalWrt [0-9]*\.[0-9]*\.[0-9]*\).*'\''/\1'\''/g' "$RELEASE_FILE"
+    sed -i 's|system/ttyd|services/ttyd|g' "$TTYD_JSON"
+    BRANCH_VERSION=$(grep 'DISTRIB_DESCRIPTION=' /etc/openwrt_release | awk -F"'" '{print $2}')
+    echo "ImmortalWrt detected: $BRANCH_VERSION"
 elif grep -q "OpenWrt" /etc/openwrt_release; then
-  sed -i "s/\(DISTRIB_DESCRIPTION='OpenWrt [0-9]*\.[0-9]*\.[0-9]*\).*'/\1'/g" /etc/openwrt_release
-  echo Branch version: "$(grep 'DISTRIB_DESCRIPTION=' /etc/openwrt_release | awk -F"'" '{print $2}')"
-fi
-echo "Tunnel Installed: $(opkg list-installed | grep -e luci-app-openclash -e luci-app-nikki -e luci-app-passwall | awk '{print $1}' | tr '\n' ' ')"
-
-# Set login root password
-(echo "xidz"; sleep 2; echo "xidz") | passwd > /dev/null
-
-# Set hostname and Timezone to Asia/Jakarta
-echo "Set hostname and Timezone to Asia/Jakarta"
-uci set system.@system[0].hostname='FreedomWrt'
-uci set system.@system[0].timezone='WIB-7'
-uci set system.@system[0].zonename='Asia/Jakarta'
-uci -q delete system.ntp.server
-uci add_list system.ntp.server="pool.ntp.org"
-uci add_list system.ntp.server="id.pool.ntp.org"
-uci add_list system.ntp.server="time.google.com"
-uci commit system
-
-# set bahasa default
-uci set luci.@core[0].lang='en' && uci commit
-
-# configure wan and lan
-echo "configure wan and lan"
-uci set network.WAN=interface
-uci set network.WAN.proto='dhcp'
-uci set network.WAN.device='eth1'
-uci set network.WAN.metric='5'
-uci set network.WAN2=interface
-uci set network.WAN2.proto='dhcp'
-uci set network.WAN2.device='eth2'
-uci set network.WAN2.metric='10'
-uci set network.MODEM=interface
-uci set network.MODEM.proto='dhcp'
-uci set network.MODEM.device='wwan0'
-uci set network.MODEM.metric='15'
-uci set network.MM=interface
-uci set network.MM.proto='modemmanager'
-uci set network.MM.device='/sys/devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb2/2-1'
-uci set network.MM.apn='internet'
-uci set network.MM.auth='none'
-uci set network.MM.iptype='ipv4'
-uci set network.MM.signalrate='10'
-uci set network.MM.metric='20'
-uci -q delete network.wan6
-uci commit network
-uci set firewall.@zone[1].network='WAN WAN2 MODEM MM'
-uci commit firewall
-
-# configure ipv6
-uci -q delete dhcp.lan.dhcpv6
-uci -q delete dhcp.lan.ra
-uci -q delete dhcp.lan.ndp
-uci commit dhcp
-
-# configure WLAN
-echo "Setup Wireless if available"
-uci set wireless.@wifi-device[0].disabled='0'
-uci set wireless.@wifi-iface[0].disabled='0'
-uci set wireless.@wifi-iface[0].encryption='none'
-uci set wireless.@wifi-device[0].country='ID'
-if grep -q "Raspberry Pi 4\|Raspberry Pi 3" /proc/cpuinfo; then
-  uci set wireless.@wifi-iface[0].ssid='XIDZ-WRT_5G'
-  uci set wireless.@wifi-device[0].channel='149'
-  uci set wireless.radio0.htmode='HT40'
-  uci set wireless.radio0.band='5g'
+    sed -i 's/\(DISTRIB_DESCRIPTION='\''OpenWrt [0-9]*\.[0-9]*\.[0-9]*\).*'\''/\1'\''/g' "$RELEASE_FILE"
+    mv "$TEMP_JS" "$NEW_TEMP_JS"
+    BRANCH_VERSION=$(grep 'DISTRIB_DESCRIPTION=' /etc/openwrt_release | awk -F"'" '{print $2}')
+    echo "OpenWrt detected: $BRANCH_VERSION"
 else
-  uci set wireless.@wifi-iface[0].ssid='XIDZ-WRT'
-  uci set wireless.@wifi-device[0].channel='1'
-  uci set wireless.@wifi-device[0].band='2g'
+    echo "Unknown system release"
 fi
-uci commit wireless
-wifi reload && wifi up
-if iw dev | grep -q Interface; then
-  if grep -q "Raspberry Pi 4\|Raspberry Pi 3" /proc/cpuinfo; then
-    if ! grep -q "wifi up" /etc/rc.local; then
-      sed -i '/exit 0/i # remove if you dont use wireless' /etc/rc.local
-      sed -i '/exit 0/i sleep 10 && wifi up' /etc/rc.local
+
+# package and add custom repo
+echo "Disabling OPKG signature checking..."
+sed -i 's/option check_signature/# option check_signature/g' "$OPKG_CONF"
+
+echo "Adding custom repository..."
+ARCH=$(grep "OPENWRT_ARCH" /etc/os-release | awk -F '"' '{print $2}')
+#echo "src/gz custom_packages https://dl.openwrt.ai/latest/packages/$ARCH/kiddin9" >> /etc/opkg/customfeeds.conf
+
+# Basic system
+echo "Setting root password..."
+(echo "root"; sleep 2; echo "root") | passwd > /dev/null
+
+echo "Configuring hostname and timezone..."
+uci batch <<EOF
+set system.@system[0].hostname='XIDZs-WRT'
+set system.@system[0].timezone='WIB-7'
+set system.@system[0].zonename='Asia/Jakarta'
+delete system.ntp.server
+add_list system.ntp.server='pool.ntp.org'
+add_list system.ntp.server='id.pool.ntp.org'
+add_list system.ntp.server='time.google.com'
+commit system
+EOF
+
+# language and theme
+echo "Setting default language and theme..."
+uci batch <<EOF
+set luci.@core[0].lang='en'
+set luci.main.mediaurlbase='/luci-static/argon'
+commit luci
+EOF
+
+# network interface
+echo "Configuring network interfaces..."
+uci batch <<EOF
+set network.wan=interface
+set network.wan.proto='dhcp'
+set network.wan.device='eth1'
+set network.tethering=interface
+set network.tethering.proto='dhcp'
+set network.tethering.device='usb0'
+set network.mm=interface
+set network.mm.proto='modemmanager'
+set network.mm.device='/sys/devices/platform/scb/fd500000.pcie/pci0000:00/0000:00:00.0/0000:01:00.0/usb2/2-1'
+set network.mm.apn='internet'
+set network.mm.auth='none'
+set network.mm.iptype='ipv4'
+set network.mm.force_connection='1'
+delete network.wan6
+commit network
+EOF
+
+# firewall
+echo "Configuring firewall..."
+uci batch <<EOF
+set firewall.@zone[1].network='tethering wan mm'
+commit firewall
+EOF
+
+# wireless
+if [ -d /sys/class/ieee80211 ] && [ "$(ls /sys/class/ieee80211 2>/dev/null)" ]; then
+    echo "Wireless detected - configuring wireless..."
+    uci batch <<EOF
+set wireless.@wifi-device[0].disabled='0'
+set wireless.@wifi-iface[0].disabled='0'
+set wireless.@wifi-iface[0].mode='ap'
+set wireless.@wifi-iface[0].encryption='psk2'
+set wireless.@wifi-iface[0].key='XIDZs2025'
+set wireless.@wifi-device[0].country='ID'
+commit wireless
+EOF
+
+    if grep -q "Raspberry Pi 5\|Raspberry Pi 4\|Raspberry Pi 3" /proc/cpuinfo 2>/dev/null; then
+        uci set wireless.@wifi-iface[0].ssid='XIDZs_5G'
+        uci set wireless.@wifi-device[0].channel='149'
+        uci set wireless.@wifi-device[0].htmode='VHT80'
+    else
+        uci set wireless.@wifi-iface[0].ssid='XIDZs'
+        uci set wireless.@wifi-device[0].channel='1'
+        uci set wireless.@wifi-device[0].htmode='HT20'
     fi
-    if ! grep -q "wifi up" /etc/crontabs/root; then
-      echo "# remove if you dont use wireless" >> /etc/crontabs/root
-      echo "0 */12 * * * wifi down && sleep 5 && wifi up" >> /etc/crontabs/root
-      service cron restart
+
+    uci commit wireless
+    
+    (wifi reload && wifi up) 2>/dev/null
+
+    if iw dev 2>/dev/null | grep -q Interface; then
+        if grep -q "Raspberry Pi 5\|Raspberry Pi 4\|Raspberry Pi 3" /proc/cpuinfo 2>/dev/null; then
+            if ! grep -q "wifi up" /etc/rc.local 2>/dev/null; then
+                sed -i '/exit 0/i sleep 10 && wifi up' /etc/rc.local
+            fi
+            if ! grep -q "wifi up" /etc/crontabs/root 2>/dev/null; then
+                echo "0 */12 * * * wifi down && sleep 5 && wifi up" >> /etc/crontabs/root
+            fi
+        fi
     fi
-  fi
 else
-  echo "No wireless device detected."
+    echo "No wireless detected - skipping wireless configuration..."
 fi
 
-# Remove sysinfo banner if Devices Amlogic
-if opkg list-installed | grep luci-app-amlogic > /dev/null; then
-    rm -rf /etc/profile.d/30-sysinfo.sh
-fi
+# me909s and dw5821e
+echo "Removing USB modeswitch entries..."
+sed -i -e '/12d1:15c1/,+5d' -e '/413c:81d7/,+5d' "$USB_MODE"
 
-# custom repo and Disable opkg signature check
-echo "custom repo and Disable opkg signature check"
-sed -i 's/option check_signature/# option check_signature/g' /etc/opkg.conf
-echo "src/gz custom_pkg https://dl.openwrt.ai/latest/packages/$(grep "OPENWRT_ARCH" /etc/os-release | awk -F '"' '{print $2}')/kiddin9" >> /etc/opkg/customfeeds.conf
+# XMM-Modem and TTYD
+echo "Disabling XMM-Modem and configuring TTYD..."
+uci batch 2>/dev/null <<EOF
+set xmm-modem.@xmm-modem[0].enable='0'
+set ttyd.@ttyd[0].command='/bin/bash --login'
+commit xmm-modem
+commit ttyd
+EOF
 
-# setup default theme
-uci set luci.main.mediaurlbase='/luci-static/argon' && uci commit
+# tinyfm
+echo "Setting up TinyFM..."
+ln -sf / /www/tinyfm/rootfs
 
-# remove login password ttyd
-uci set ttyd.@ttyd[0].command='/bin/bash --login' && uci commit
+# Add startup scripts
+echo "Adding custom startup scripts..."
+sed -i '/exit 0/i\
+# x-gpio for HG & BH\
+#sleep 5 && /usr/bin/x-gpio -r\
+#/etc/init.d/openclash restart\
+#sleep 5 && /sbin/free.sh\
+#/sbin/jam bug.com' "$RC_LOCAL"
 
-# remove huawei me909s usb-modeswitch
-sed -i -e '/12d1:15c1/,+5d' /etc/usb-mode.json
+# UI customizations
+echo "Modifying UI elements..."
+sed -i "s#_('Firmware Version'),(L.isObject(boardinfo.release)?boardinfo.release.description+' / ':'')+(luciversion||''),#_('Firmware Version'),(L.isObject(boardinfo.release)?boardinfo.release.description+' | xidz_x':''),#g" "$SYSTEM_JS"
+sed -i -E 's/icons\/port_%s\.(svg|png)/icons\/port_%s.gif/g' "$PORTS_JS"
+mv "$PORTS_JS" "$NEW_PORTS_JS"
 
-# remove dw5821e usb-modeswitch
-sed -i -e '/413c:81d7/,+5d' /etc/usb-mode.json
+# System customizations
+echo "Applying system.."
+sed -i -e 's/\[ -f \/etc\/banner \] && cat \/etc\/banner/#&/' -e 's/\[ -n \"\$FAILSAFE\" \] && cat \/etc\/banner.failsafe/& || \/usr\/bin\/syntax/' "$PROFILE"
+"$XIDZS" disable
 
-# Disable /etc/config/xmm-modem
-uci set xmm-modem.@xmm-modem[0].enable='0' && uci commit
+# Execute scripts
+echo "Running quenxx script..."
+"$QUENXX_SH"
 
-# setup misc settings
-echo "setup misc settings"
-sed -i 's/\[ -f \/etc\/banner \] && cat \/etc\/banner/#&/' /etc/profile
-sed -i 's/\[ -n "$FAILSAFE" \] && cat \/etc\/banner.failsafe/& || \/usr\/bin\/idz/' /etc/profile
-chmod +x /root/install2.sh && bash /root/install2.sh
-chmod +x /usr/lib/ModemManager/connection.d/10-report-down
-chmod -R +x /sbin
-chmod -R +x /usr/bin
+echo "Running install2 script..."
+"$INSTALL2_SH"
 
-# netdata
-mv /usr/share/netdata/web/lib/jquery-3.6.0.min.js /usr/share/netdata/web/lib/jquery-2.2.4.min.js
+# Tunnel configurasi
+echo "Checking tunnel.."
+for pkg in luci-app-openclash luci-app-nikki luci-app-passwall; do
+    if opkg list-installed | grep -qw "$pkg" 2>/dev/null; then
+        echo "$pkg detected - configuring"
+        
+        case "$pkg" in
+            luci-app-openclash)
+                echo "Configuring OpenClash"
+                ln -sf /etc/openclash/history/xidzs.db /etc/openclash/cache.db
+                ln -sf /etc/openclash/core/clash_meta /etc/openclash/clash    
+                            
+                sed -i '103,105s/.*/<\!-- & -->/' "$RTA_CONF"
+                sed -i '144s/.*/<\!-- & -->/' "$ARGON_CONF"
+                sed -i "88s/'Enable'/'Disable'/" "$ALPHA_CONF"
+                ;;
+                
+            luci-app-nikki)
+                echo "Configuring Nikki"               
+                sed -i '115,117s/.*/<\!-- & -->/' "$RTA_CONF"
+                sed -i '146s/.*/<\!-- & -->/' "$ARGON_CONF"
+                sed -i "40s/'Enable'/'Disable'/" "$ALPHA_CONF"
+                ;;
+                
+            luci-app-passwall)
+                echo "Configuring Passwall"
+                sed -i '112,114s/.*/<\!-- & -->/' "$RTA_CONF"
+                sed -i '147s/.*/<\!-- & -->/' "$ARGON_CONF"
+                sed -i "72s/'Enable'/'Disable'/" "$ALPHA_CONF"
+                ;;
+        esac
+        
+    else
+        echo "$pkg not found - cleaning up"
+        
+        case "$pkg" in
+            luci-app-openclash)
+                rm -rf /etc/openclash
+                
+                sed -i '118,120s/.*/<\!-- & -->/' "$RTA_CONF"
+                sed -i '149s/.*/<\!-- & -->/' "$ARGON_CONF"
+                sed -i "104s/'Enable'/'Disable'/" "$ALPHA_CONF"
+                ;;
+                
+            luci-app-nikki)
+                rm -f /etc/config/nikki
+                rm -rf /etc/nikki
+                
+                sed -i '121,123s/.*/<\!-- & -->/' "$RTA_CONF"
+                sed -i '150s/.*/<\!-- & -->/' "$ARGON_CONF"
+                sed -i "120s/'Enable'/'Disable'/" "$ALPHA_CONF"
+                ;;
+                
+            luci-app-passwall)
+                rm -f /etc/config/passwall
+                
+                sed -i '124,126s/.*/<\!-- & -->/' "$RTA_CONF"
+                sed -i '151s/.*/<\!-- & -->/' "$ARGON_CONF"
+                sed -i "136s/'Enable'/'Disable'/" "$ALPHA_CONF"
+                ;;
+        esac
+    fi
+done
 
-# Setup Auto Vnstat Database Backup
-echo "Setup Auto Vnstat Database Backup"
-mkdir /etc/vnstat
-chmod +x /etc/init.d/vnstat_backup
-bash /etc/init.d/vnstat_backup enable
+# Web server
+echo "Configuring web server and PHP..."
+uci batch << EOF
+set uhttpd.main.ubus_prefix='/ubus'
+set uhttpd.main.interpreter='.php=/usr/bin/php-cgi'
+set uhttpd.main.index_page='cgi-bin/luci'
+add_list uhttpd.main.index_page='index.html'
+add_list uhttpd.main.index_page='index.php'
+commit uhttpd
+EOF
 
-# vnstati
-echo "configuring netdata"
-chmod +x /www/vnstati/vnstati.sh
-/etc/init.d/netdata restart
-/etc/init.d/vnstat restart
-/www/vnstati/vnstati.sh
+cp /etc/php.ini "$PHP_INI_BAK"
+sed -i \
+    -e 's|^memory_limit = .*|memory_limit = 128M|g' \
+    -e 's|^max_execution_time = .*|max_execution_time = 60|g' \
+    -e 's|^display_errors = .*|display_errors = Off|g' \
+    -e 's|^;*date\.timezone =.*|date.timezone = Asia/Jakarta|g' \
+    "$PHP_INI"
 
-# Setting Tinyfm
-ln -s / /www/tinyfm/rootfs
+ln -sf /usr/lib/php8
 
-# configurating openclash
-if opkg list-installed | grep luci-app-openclash > /dev/null; then
-  echo "Openclash Detected!"
-  echo "Configuring Core..."
-  chmod +x /etc/openclash/core/clash_meta
-  chmod +x /etc/openclash/GeoIP.dat
-  chmod +x /etc/openclash/GeoSite.dat
-  chmod +x /etc/openclash/Country.mmdb
-  chmod +x /usr/bin/patchoc.sh
-  echo "Patching Openclash Overview"
-  bash /usr/bin/patchoc.sh
-  sed -i '/exit 0/i #/usr/bin/patchoc.sh' /etc/rc.local
-  ln -s /etc/openclash/history/Quenx.db /etc/openclash/cache.db
-  ln -s /etc/openclash/core/clash_meta  /etc/openclash/clash
-  rm -rf /etc/config/openclash
-  rm -rf /etc/openclash/custom
-  rm -rf /etc/openclash/game_rules
-  rm -rf /usr/share/openclash/openclash_version.sh
-  find /etc/openclash/rule_provider -type f ! -name "*.yaml" -exec rm -f {} \;
-  mv /etc/config/openclash1 /etc/config/openclash
-  echo "setup complete!"
-else
-  echo "No Openclash Detected."
-  rm -rf /etc/config/openclash1
-  rm -rf /etc/openclash
-fi
+# Final cleanup
+echo "cleaning up, completed setup..."
+rm -rf /etc/uci-defaults/$(basename "$0")
 
-# configurating Nikki
-if opkg list-installed | grep luci-app-nikki > /dev/null; then
-  echo "setup complete!"
-  chmod +x /etc/nikki/run/GeoIP.dat
-  chmod +x /etc/nikki/run/GeoSite.dat
-else
-  echo "No Nikki Detected."
-  rm -rf /etc/config/nikki
-  rm -rf /etc/nikki
-fi
-
-# remove
-rm -rf /www/luci-static/resources/view/status/include/25_storage.js
-
-# Setup PHP
-echo "setup php"
-uci set uhttpd.main.ubus_prefix='/ubus'
-uci set uhttpd.main.interpreter='.php=/usr/bin/php-cgi'
-uci set uhttpd.main.index_page='cgi-bin/luci'
-uci add_list uhttpd.main.index_page='index.html'
-uci add_list uhttpd.main.index_page='index.php'
-uci commit uhttpd
-sed -i -E "s|memory_limit = [0-9]+M|memory_limit = 100M|g" /etc/php.ini
-sed -i -E "s|display_errors = On|display_errors = Off|g" /etc/php.ini
-ln -s /usr/bin/php-cli /usr/bin/php
-[ -d /usr/lib/php8 ] && [ ! -d /usr/lib/php ] && ln -sf /usr/lib/php8 /usr/lib/php
-/etc/init.d/uhttpd restart
-
-echo "All first boot setup complete!"
-rm -f /etc/uci-defaults/$(basename $0)
 exit 0

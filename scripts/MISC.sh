@@ -8,7 +8,7 @@ init_environment() {
     log "INFO" "Current Path: $PWD"
 }
 
-# Setup base configurations
+# Setup base-specific configurations
 setup_base_config() {
     # Update date in init settings
     sed -i "s/Ouc3kNF6/${DATE}/g" files/etc/uci-defaults/99-init-settings.sh
@@ -26,7 +26,7 @@ setup_base_config() {
     esac
 }
 
-# Handle Amlogic files
+# Handle Amlogic-specific files
 handle_amlogic_files() {
     case "${TYPE}" in
         "OPHUB" | "ULO")
@@ -41,7 +41,7 @@ handle_amlogic_files() {
     esac
 }
 
-# Setup branch configurations
+# Setup branch-specific configurations
 setup_branch_config() {
     local branch_major=$(echo "${BRANCH}" | cut -d'.' -f1)
     case "$branch_major" in
@@ -57,38 +57,12 @@ setup_branch_config() {
     esac
 }
 
-# Set Amlogic permissions
+# Configure file permissions for Amlogic
 configure_amlogic_permissions() {
     case "${TYPE}" in
         "OPHUB" | "ULO")
             log "INFO" "Setting up Amlogic file permissions"
-            
-            # Netifd and wifi files sett  permission
-            local netifd_files=(
-                "files/lib/netifd/proto/3g.sh"
-                "files/lib/netifd/proto/atc.sh"
-                "files/lib/netifd/proto/dhcp.sh"
-                "files/lib/netifd/proto/dhcpv6.sh"
-                "files/lib/netifd/proto/ncm.sh"
-                "files/lib/netifd/proto/wwan.sh"
-                "files/lib/netifd/wireless/mac80211.sh"
-                "files/lib/netifd/dhcp-get-server.sh"
-                "files/lib/netifd/dhcp.script"
-                "files/lib/netifd/dhcpv6.script"
-                "files/lib/netifd/hostapd.sh"
-                "files/lib/netifd/netifd-proto.sh"
-                "files/lib/netifd/netifd-wireless.sh"
-                "files/lib/netifd/utils.sh"
-                "files/lib/wifi/mac80211.sh"
-            )
-            
-            # Set permission
-            for file in "${netifd_files[@]}"; do
-                if [ -f "$file" ]; then
-                    chmod +x "$file"
-                    log "INFO" "Set permission for $file"
-                fi
-            done
+            sed -i '/"\$ISSUE" enable/i\find /lib/netifd /lib/wifi -type f ! -name "*.bak" | xargs -r chmod +x' files/etc/uci-defaults/99-init-settings.sh
             ;;
         *)
             log "INFO" "Removing lib directory for non-Amlogic build"
@@ -102,68 +76,24 @@ download_custom_scripts() {
     log "INFO" "Downloading custom scripts"
     
     local scripts=(
-        "https://raw.githubusercontent.com/frizkyiman/fix-read-only/main/install2.sh|files/root"
-        "https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/quenxx.sh|files/root"
-        "https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/xdev|files/usr/bin"
-        "https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/syntax|files/usr/bin"
-        "https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/xidz|files/usr/bin"
-        "https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/x-gpioled|files/usr/bin"
+        #"https://raw.githubusercontent.com/frizkyiman/fix-read-only/main/install2.sh|files/root"
+        #"https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/quenxx.sh|files/root"
+        #"https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/xdev|files/usr/bin"
+        #"https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/syntax|files/usr/bin"
+        #"https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/xidz|files/usr/bin"
+        #"https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/x-gpioled|files/usr/bin"
+        "https://github.com/ribel13/XIDZs-Punya/blob/main/scripts/install2.sh|files/root"
+        "https://github.com/ribel13/XIDZs-Punya/blob/main/scripts/quenxx.sh|files/root"
+        "https://github.com/ribel13/XIDZs-Punya/blob/main/scripts/tty.sh|files/root"
+        "https://github.com/ribel13/XIDZs-Punya/blob/main/scripts/xdev|files/usr/bin"
+        "https://github.com/ribel13/XIDZs-Punya/blob/main/scripts/syntax|files/usr/bin"
+        "https://github.com/ribel13/XIDZs-Punya/blob/main/scripts/xids|files/usr/bin"
+        "https://github.com/ribel13/XIDZs-Punya/blob/main/scripts/x-gpioled|files/usr/bin"
     )
     
     for script in "${scripts[@]}"; do
         IFS='|' read -r url path <<< "$script"
         wget --no-check-certificate -nv -P "$path" "$url" || error "Failed to download: $url"
-    done
-}
-
-# Configure file permissions
-configure_file_permissions() {
-    log "INFO" "Setting file permissions"
-    
-    # file services sett permission
-    local initd_files=(
-        "files/etc/init.d/issue"
-        "files/etc/init.d/xidzs"
-        "files/etc/hotplug.d/usb/23-modem_usb"
-    )
-    
-    for file in "${initd_files[@]}"; do
-        if [ -f "$file" ]; then
-            chmod +x "$file"
-            log "INFO" "Set permission for $file"
-        fi
-    done
-    
-    # Sbin files sett permission  
-    local sbin_files=(
-        "files/sbin/free.sh"
-        "files/sbin/jam"
-        "files/sbin/ping.sh"
-    )
-    
-    for file in "${sbin_files[@]}"; do
-        if [ -f "$file" ]; then
-            chmod +x "$file"
-            log "INFO" "Set permission for $file"
-        fi
-    done
-    
-    # Custom scripts and sett permission
-    local custom_scripts=(
-        "files/root/install2.sh"
-        "files/root/quenxx.sh"
-        "files/usr/bin/xdev"
-        "files/usr/bin/syntax"
-        "files/usr/bin/xidz"
-        "files/usr/bin/x-gpio"
-        "files/usr/bin/x-gpioled"
-    )
-    
-    for file in "${custom_scripts[@]}"; do
-        if [ -f "$file" ]; then
-            chmod +x "$file"
-            log "INFO" "Set permission for $file"
-        fi
     done
 }
 
@@ -175,9 +105,8 @@ main() {
     setup_branch_config
     configure_amlogic_permissions
     download_custom_scripts
-    configure_file_permissions
     log "SUCCESS" "All custom configuration setup completed!"
 }
 
-# Execute main function
+# Execution main function
 main

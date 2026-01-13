@@ -5,7 +5,7 @@
 # Define repositories with proper quoting
 declare -A REPOS
 REPOS+=(
-    ["OPENWRT"]="https://downloads.openwrt.org/releases/packages-${VEROP}/${ARCH_3}"
+    ["OPENWRT"]="http://downloads.openwrt.org/releases/packages-${VEROP}/${ARCH_3}"
     ["IMMORTALWRT"]="https://downloads.immortalwrt.org/releases/packages-${VEROP}/${ARCH_3}"
     ["KIDDIN9"]="https://dl.openwrt.ai/releases/24.10/packages/${ARCH_3}/kiddin9"
     ["GSPOTX2F"]="https://github.com/gSpotx2f/packages-openwrt/raw/refs/heads/master/current"
@@ -45,8 +45,8 @@ packages_custom+=(
     #"luci-app-tailscale-community_|${REPOS[KIDDIN9]}"
     
     "luci-app-oled_|${REPOS[KIDDIN9]}"
-    "modemband_|${REPOS[IMMORTALWRT]}/packages"
-    "luci-app-ramfree_|${REPOS[IMMORTALWRT]}/luci"
+    "modemband_|${REPOS[KIDDIN9]}/packages"
+    "luci-app-ramfree_|${REPOS[KIDDIN9]}/luci"
     "luci-app-modemband_|${REPOS[IMMORTALWRT]}/luci"
     "luci-app-sms-tool-js_|${REPOS[IMMORTALWRT]}/luci"
     "dns2tcp_|${REPOS[IMMORTALWRT]}/packages"

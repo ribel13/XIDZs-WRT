@@ -17,6 +17,7 @@ REPOS+=(
     ["GSPOTX2F"]="https://github.com/gSpotx2f/packages-openwrt/raw/refs/heads/master/current"
     ["FANTASTIC"]="https://fantastic-packages.github.io/packages/releases/${VEROP}/packages/x86_64"
     ["DLLKIDS"]="https://op.dllkids.xyz/packages/${ARCH_3}"
+    ["OPENWRTRU"]="https://openwrt.132lan.ru/packages/24.10/packages/${ARCH_3}/modemfeed"
 )
 
 # Define package categories with improved structure

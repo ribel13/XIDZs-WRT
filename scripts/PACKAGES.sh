@@ -47,9 +47,9 @@ packages_custom+=(
     "luci-app-oled_|${REPOS[KIDDIN9]}"
     "modemband_|${REPOS[KIDDIN9]}/packages"
     "luci-app-ramfree_|${REPOS[KIDDIN9]}/luci"
-    "luci-app-modemband_|${REPOS[IMMORTALWRT]}/luci"
-    "luci-app-sms-tool-js_|${REPOS[IMMORTALWRT]}/luci"
-    "dns2tcp_|${REPOS[IMMORTALWRT]}/packages"
+    "luci-app-modemband_|${REPOS[KIDDIN9]}/luci"
+    "luci-app-sms-tool-js_|${REPOS[KIDDIN9]}/luci"
+    "dns2tcp_|${REPOS[KIDDIN9]}/packages"
     #"luci-theme-argon_|${REPOS[IMMORTALWRT]}/luci"
     #"luci-app-irqbalance_|${REPOS[IMMORTALWRT]}/luci"
     

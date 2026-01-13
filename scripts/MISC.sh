@@ -8,7 +8,7 @@ init_environment() {
     log "INFO" "Current Path: $PWD"
 }
 
-# Setup base-specific configurations
+# Setup base configurations
 setup_base_config() {
     # Update date in init settings
     sed -i "s/Ouc3kNF6/${DATE}/g" files/etc/uci-defaults/99-init-settings.sh
@@ -16,27 +16,20 @@ setup_base_config() {
     case "${BASE}" in
         "openwrt")
             log "INFO" "Configuring OpenWrt specific settings"
-            sed -i '/# setup misc settings/ a\mv \/www\/luci-static\/resources\/view\/status\/include\/29_temp.js \/www\/luci-static\/resources\/view\/status\/include\/17_temp.js' files/etc/uci-defaults/99-init-settings.sh
             ;;
         "immortalwrt")
             log "INFO" "Configuring ImmortalWrt specific settings"
             ;;
         *)
-            log "INFO" "Unknown base system: ${BASE}}"
+            log "INFO" "Unknown base system: ${BASE}"
             ;;
     esac
 }
 
-# Handle Amlogic-specific files
+# Handle Amlogic files
 handle_amlogic_files() {
     case "${TYPE}" in
-        "OPHUB")
-            log "INFO" "Removing Amlogic-specific files"
-            rm -f files/etc/uci-defaults/70-rootpt-resize
-            rm -f files/etc/uci-defaults/80-rootfs-resize
-            rm -f files/etc/sysupgrade.conf
-            ;;
-        "ULO")
+        "OPHUB" | "ULO")
             log "INFO" "Removing Amlogic-specific files"
             rm -f files/etc/uci-defaults/70-rootpt-resize
             rm -f files/etc/uci-defaults/80-rootfs-resize
@@ -48,7 +41,7 @@ handle_amlogic_files() {
     esac
 }
 
-# Setup branch-specific configurations
+# Setup branch configurations
 setup_branch_config() {
     local branch_major=$(echo "${BRANCH}" | cut -d'.' -f1)
     case "$branch_major" in
@@ -64,53 +57,37 @@ setup_branch_config() {
     esac
 }
 
-# Configure file permissions for Amlogic
+# Set Amlogic permissions
 configure_amlogic_permissions() {
     case "${TYPE}" in
-        "OPHUB")
+        "OPHUB" | "ULO")
             log "INFO" "Setting up Amlogic file permissions"
+            
+            # Netifd and wifi files sett  permission
             local netifd_files=(
-                "/lib/netifd/proto/3g.sh"
-                "/lib/netifd/proto/dhcp.sh"
-                "/lib/netifd/proto/dhcpv6.sh"
-                "/lib/netifd/proto/ncm.sh"
-                "/lib/netifd/proto/wwan.sh"
-                "/lib/netifd/wireless/mac80211.sh"
-                "/lib/netifd/dhcp-get-server.sh"
-                "/lib/netifd/dhcp.script"
-                "/lib/netifd/dhcpv6.script"
-                "/lib/netifd/hostapd.sh"
-                "/lib/netifd/netifd-proto.sh"
-                "/lib/netifd/netifd-wireless.sh"
-                "/lib/netifd/utils.sh"
-                "/lib/wifi/mac80211.sh"
+                "files/lib/netifd/proto/3g.sh"
+                "files/lib/netifd/proto/atc.sh"
+                "files/lib/netifd/proto/dhcp.sh"
+                "files/lib/netifd/proto/dhcpv6.sh"
+                "files/lib/netifd/proto/ncm.sh"
+                "files/lib/netifd/proto/wwan.sh"
+                "files/lib/netifd/wireless/mac80211.sh"
+                "files/lib/netifd/dhcp-get-server.sh"
+                "files/lib/netifd/dhcp.script"
+                "files/lib/netifd/dhcpv6.script"
+                "files/lib/netifd/hostapd.sh"
+                "files/lib/netifd/netifd-proto.sh"
+                "files/lib/netifd/netifd-wireless.sh"
+                "files/lib/netifd/utils.sh"
+                "files/lib/wifi/mac80211.sh"
             )
             
+            # Set permission
             for file in "${netifd_files[@]}"; do
-                sed -i "/# setup misc settings/ a\chmod +x $file" files/etc/uci-defaults/99-init-settings.sh
-            done
-            ;;
-        "ULO")
-            log "INFO" "Setting up Amlogic file permissions"
-            local netifd_files=(
-                "/lib/netifd/proto/3g.sh"
-                "/lib/netifd/proto/dhcp.sh"
-                "/lib/netifd/proto/dhcpv6.sh"
-                "/lib/netifd/proto/ncm.sh"
-                "/lib/netifd/proto/wwan.sh"
-                "/lib/netifd/wireless/mac80211.sh"
-                "/lib/netifd/dhcp-get-server.sh"
-                "/lib/netifd/dhcp.script"
-                "/lib/netifd/dhcpv6.script"
-                "/lib/netifd/hostapd.sh"
-                "/lib/netifd/netifd-proto.sh"
-                "/lib/netifd/netifd-wireless.sh"
-                "/lib/netifd/utils.sh"
-                "/lib/wifi/mac80211.sh"
-            )
-            
-            for file in "${netifd_files[@]}"; do
-                sed -i "/# setup misc settings/ a\chmod +x $file" files/etc/uci-defaults/99-init-settings.sh
+                if [ -f "$file" ]; then
+                    chmod +x "$file"
+                    log "INFO" "Set permission for $file"
+                fi
             done
             ;;
         *)
@@ -126,11 +103,67 @@ download_custom_scripts() {
     
     local scripts=(
         "https://raw.githubusercontent.com/frizkyiman/fix-read-only/main/install2.sh|files/root"
+        "https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/quenxx.sh|files/root"
+        "https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/xdev|files/usr/bin"
+        "https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/syntax|files/usr/bin"
+        "https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/xidz|files/usr/bin"
+        "https://raw.githubusercontent.com/syntax-xidz/contenx/main/shell/x-gpioled|files/usr/bin"
     )
     
     for script in "${scripts[@]}"; do
         IFS='|' read -r url path <<< "$script"
         wget --no-check-certificate -nv -P "$path" "$url" || error "Failed to download: $url"
+    done
+}
+
+# Configure file permissions
+configure_file_permissions() {
+    log "INFO" "Setting file permissions"
+    
+    # file services sett permission
+    local initd_files=(
+        "files/etc/init.d/issue"
+        "files/etc/init.d/xidzs"
+        "files/etc/hotplug.d/usb/23-modem_usb"
+    )
+    
+    for file in "${initd_files[@]}"; do
+        if [ -f "$file" ]; then
+            chmod +x "$file"
+            log "INFO" "Set permission for $file"
+        fi
+    done
+    
+    # Sbin files sett permission  
+    local sbin_files=(
+        "files/sbin/free.sh"
+        "files/sbin/jam"
+        "files/sbin/ping.sh"
+    )
+    
+    for file in "${sbin_files[@]}"; do
+        if [ -f "$file" ]; then
+            chmod +x "$file"
+            log "INFO" "Set permission for $file"
+        fi
+    done
+    
+    # Custom scripts and sett permission
+    local custom_scripts=(
+        "files/root/install2.sh"
+        "files/root/quenxx.sh"
+        "files/usr/bin/xdev"
+        "files/usr/bin/syntax"
+        "files/usr/bin/xidz"
+        "files/usr/bin/x-gpio"
+        "files/usr/bin/x-gpioled"
+    )
+    
+    for file in "${custom_scripts[@]}"; do
+        if [ -f "$file" ]; then
+            chmod +x "$file"
+            log "INFO" "Set permission for $file"
+        fi
     done
 }
 
@@ -142,6 +175,7 @@ main() {
     setup_branch_config
     configure_amlogic_permissions
     download_custom_scripts
+    configure_file_permissions
     log "SUCCESS" "All custom configuration setup completed!"
 }
 

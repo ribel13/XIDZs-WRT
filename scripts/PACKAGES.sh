@@ -54,7 +54,7 @@ packages_custom+=(
     "luci-app-modemband_|${REPOS[IMMORTALWRT]}/luci"
     "luci-app-sms-tool-js_|${REPOS[IMMORTALWRT]}/luci"
     "dns2tcp_|${REPOS[IMMORTALWRT]}/packages"
-    "luci-app-temp-status_|${REPOS[GSPOTX2F]}"
+    "luci-app-temp-status_|${REPOS[KIDDIN9]}"
 )
 
 if [ "${TYPE}" == "OPHUB" ]; then

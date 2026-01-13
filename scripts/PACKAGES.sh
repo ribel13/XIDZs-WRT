@@ -58,7 +58,7 @@ packages_custom+=(
     "luci-app-internet-detector_|${REPOS[KIDDIN9]}"
     "internet-detector_|${REPOS[KIDDIN9]}"
     "internet-detector-mod-modem-restart_|${REPOS[KIDDIN9]}"
-    "luci-app-temp-status_|${REPOS[KIDDIN9]}"
+    "luci-app-temp-status_|${REPOS[OPENWRT]}"
     #"luci-theme-edge_|${REPOS[KIDDIN9]}"
     
     "luci-app-tinyfm_|https://api.github.com/repos/bobbyunknown/luci-app-tinyfm/releases/latest"

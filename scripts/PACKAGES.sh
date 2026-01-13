@@ -7,7 +7,7 @@ declare -A REPOS
 REPOS+=(
     ["OPENWRT"]="http://downloads.openwrt.org/releases/packages-${VEROP}/${ARCH_3}"
     ["IMMORTALWRT"]="https://downloads.immortalwrt.org/releases/packages-${VEROP}/${ARCH_3}"
-    ["KIDDIN9"]="https://dl.openwrt.ai/releases/24.10/packages/${ARCH_3}/kiddin9"
+    ["KIDDIN9"]="https://dl.openwrt.ai/releases/24.10/packages/aarch64_generic/kiddin9"
     ["GSPOTX2F"]="https://github.com/gSpotx2f/packages-openwrt/raw/refs/heads/master/current"
     ["FANTASTIC"]="https://fantastic-packages.github.io/packages/releases/${VEROP}/packages/x86_64"
     ["DLLKIDS"]="https://op.dllkids.xyz/packages/${ARCH_3}"

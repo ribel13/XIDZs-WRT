@@ -1,4 +1,4 @@
-name: Build by Mod
+name: Build Firmware Ophub
 
 on:
   workflow_dispatch:
@@ -10,9 +10,11 @@ on:
         type: choice
         options:
           - openwrt:24.10.5
+          - openwrt:24.10.4
           - openwrt:23.05.6
           - immortalwrt:24.10.4
           - immortalwrt:23.05.7
+          - immortalwrt:23.05.2
       target:
         description: "Select device board"
         required: false
@@ -55,7 +57,9 @@ on:
         type: choice
         options:
           - openclash
-          - openclash-nikki
+          - nikki
+          - insomclash
+          # openclash-nikki
           # openclash-insomclash
           # openclash-nikki-passwall
           - no-tunnel
@@ -170,13 +174,13 @@ jobs:
           echo "datemonth=$DATEMONTH" >> $GITHUB_OUTPUT
 
           if [ "${BASE}" == "openwrt" ]; then
-            RELEASE_NAME="OpenWRT-Next-O-${BRANCH}-${DATE}"
-            RELEASE_TAG="openwrt-next-o-${BRANCH}-${DATE}"
+            RELEASE_NAME="Ophub-OpenWRT-${BRANCH}-${DATE}"
+            RELEASE_TAG="ophub-openwrt-${BRANCH}-${DATE}"
             echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
             echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
           elif [ "${BASE}" == "immortalwrt" ]; then
-            RELEASE_NAME="ImmortalWRT-Next-O-${BRANCH}-${DATE}"
-            RELEASE_TAG="immortalwrt-next-o-${BRANCH}-${DATE}"
+            RELEASE_NAME="Ophub-ImmortalWRT-${BRANCH}-${DATE}"
+            RELEASE_TAG="ophub-immortalwrt-${BRANCH}-${DATE}"
             echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
             echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
           fi
@@ -186,7 +190,8 @@ jobs:
         if: steps.setupenv.outputs.status == 'success'
         uses: softprops/action-gh-release@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          #GITHUB_TOKEN: ${{ secrets.XIDZs_KEY }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           tag_name: ${{ steps.setupenv.outputs.release_tag }}
           name: ${{ steps.setupenv.outputs.release_name }}
@@ -355,25 +360,26 @@ jobs:
               ;;
             "Amlogic s905x B860H")
               TARGET_BUILD="s905x-b860h"
+              ##KERNEL="5.15.y_6.1.y_6.6.y"
               KERNEL="5.15.y_6.1.y_6.6.y_6.12.y"
               echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV
               echo "KERNEL=$KERNEL" >> $GITHUB_ENV
               ;;
             "Amlogic s905x B860H MODSDCARD")
               TARGET_BUILD="s905x-b860h"
-              KERNEL="5.15.y_6.1.y"
+              KERNEL="5.15.y_6.1.y_6.6.y"
               echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV
               echo "KERNEL=$KERNEL" >> $GITHUB_ENV
               ;;
             "Amlogic s905x HG680P")
               TARGET_BUILD="s905x"
-              KERNEL="5.15.y_6.1.y_6.6.y_6.12.y"
+              KERNEL="5.15.y_6.1.y_6.6.y"
               echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV
               echo "KERNEL=$KERNEL" >> $GITHUB_ENV
               ;;
             "Amlogic s905x HG680P MODSDCARD")
               TARGET_BUILD="s905x"
-              KERNEL="5.15.y_6.1.y"
+              KERNEL="5.15.y_6.1.y_6.6.y"
               echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV
               echo "KERNEL=$KERNEL" >> $GITHUB_ENV
               ;;
@@ -622,7 +628,7 @@ jobs:
           # Move and rename output files
           for file in bin/targets/"${TARGET_SYSTEM}"/*-rootfs.tar.gz; do
             if [ -f "$file" ]; then
-              new_name="FR33DOM-$(basename "$file" -rootfs.tar.gz)_${{ env.TUNNEL }}-rootfs.tar.gz"
+              new_name="Freedom-$(basename "$file" -rootfs.tar.gz)_${{ env.TUNNEL }}-rootfs.tar.gz"
               mv "$file" compiled_images/$new_name
             fi
           done
@@ -662,7 +668,8 @@ jobs:
         if: steps.beforeupload.outputs.status == 'success'
         uses: softprops/action-gh-release@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          # GITHUB_TOKEN: ${{ secrets.XIDZs_KEY }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: ${{ env.RELEASE_NAME }}

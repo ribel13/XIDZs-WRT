@@ -42,7 +42,7 @@ PACKAGES+=" modeminfo-serial-tw modeminfo-serial-dell modeminfo-serial-xmm modem
 # Tunnel option
 OPENCLASH+="coreutils-nohup bash ca-certificates ipset ip-full libcap libcap-bin ruby ruby-yaml kmod-tun kmod-inet-diag kmod-nft-tproxy luci-app-openclash"
 NIKKI+="nikki luci-app-nikki"
-PASSWALL+="chinadns-ng resolveip dns2socks dns2tcp ipt2socks microsocks tcping xray-core xray-plugin luci-app-passwall"
+#PASSWALL+="chinadns-ng resolveip dns2socks dns2tcp ipt2socks microsocks tcping xray-core xray-plugin luci-app-passwall"
 
 # Tunnel options handling
 handle_tunnel_option() {
@@ -60,7 +60,8 @@ handle_tunnel_option() {
 }
 
 # Nas and storage
-PACKAGES+=" luci-app-diskman luci-app-tinyfilemanager"
+#PACKAGES+=" luci-app-diskman luci-app-tinyfilemanager"
+PACKAGES+=" luci-app-diskman"
 
 # PHP8
 PACKAGES+=" php8 php8-fastcgi php8-fpm php8-mod-session php8-mod-ctype php8-mod-fileinfo php8-mod-zip php8-mod-iconv php8-mod-mbstring"

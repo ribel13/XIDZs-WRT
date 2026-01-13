@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# Source the include file containing common functions and variables
-if [[ ! -f "./scripts/INCLUDE.sh" ]]; then
-    error_msg "INCLUDE.sh not found in ./scripts/"
-    exit 1
-fi
-
 . ./scripts/INCLUDE.sh
 
 # Define repositories with proper quoting
@@ -24,47 +18,61 @@ REPOS+=(
 declare -a packages_custom
 packages_custom+=(
     "modeminfo_|${REPOS[KIDDIN9]}"
-    "luci-app-modeminfo_|${REPOS[DLLKIDS]}"
-    #  "modeminfo-serial-fm350_|${REPOS[KIDDIN9]}"
+    "luci-app-modeminfo_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-tw_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-dell_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-sierra_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-xmm_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-fibocom_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-sierra_|${REPOS[KIDDIN9]}"
-    "modeminfo-serial-fm350_|${REPOS[DLLKIDS]}"
+    #"luci-app-mmconfig_|${REPOS[OPENWRTRU]}"
     
-    "fm350-modem_|${REPOS[DLLKIDS]}"
-    "luci-proto-fm350_|${REPOS[DLLKIDS]}"
     "atinout_|${REPOS[KIDDIN9]}"
     "luci-app-diskman_|${REPOS[KIDDIN9]}"
-    "luci-app-poweroff_|${REPOS[DLLKIDS]}"
+    #"luci-app-poweroff_|${REPOS[DLLKIDS]}"
     "luci-app-poweroffdevice_|${REPOS[KIDDIN9]}" 
-    "xmm-modem_|${REPOS[KIDDIN9]}"
+    #"xmm-modem_|${REPOS[KIDDIN9]}"
     
     "luci-app-lite-watchdog_|${REPOS[KIDDIN9]}"
-    "luci-app-macvlan_|${REPOS[KIDDIN9]}"
-    "luci-app-fancontrol_|${REPOS[KIDDIN9]}"
+    #"luci-app-speedtest-web_|${REPOS[KIDDIN9]}"
+    #"luci-app-netspeedtest_|${REPOS[KIDDIN9]}"
+    #"ookla-speedtest_|${REPOS[KIDDIN9]}"
+    #"luci-app-fancontrol_|${REPOS[KIDDIN9]}"
     "luci-app-atcommands_|${REPOS[KIDDIN9]}"
+    #"tailscale_|${REPOS[KIDDIN9]}"
+    "tailscale_|${REPOS[OPENWRT]}/packages"
+    #"tailscale_|${REPOS[IMMORTALWRT]}/packages"
+    #"luci-app-tailscale-community_|${REPOS[KIDDIN9]}"
     
     "luci-app-oled_|${REPOS[KIDDIN9]}"
-    #"luci-app-tinyfm_|https://api.github.com/repos/bobbyunknown/luci-app-tinyfm/releases/latest"
-    "luci-app-tinyfm_|${REPOS[KIDDIN9]}"
     "modemband_|${REPOS[IMMORTALWRT]}/packages"
     "luci-app-ramfree_|${REPOS[IMMORTALWRT]}/luci"
     "luci-app-modemband_|${REPOS[IMMORTALWRT]}/luci"
     "luci-app-sms-tool-js_|${REPOS[IMMORTALWRT]}/luci"
     "dns2tcp_|${REPOS[IMMORTALWRT]}/packages"
+    #"luci-theme-argon_|${REPOS[IMMORTALWRT]}/luci"
+    #"luci-app-irqbalance_|${REPOS[IMMORTALWRT]}/luci"
+    
+    "ookla-speedtest_|${REPOS[KIDDIN9]}"
+    "luci-app-eqosplus_|${REPOS[KIDDIN9]}"
+    "luci-app-internet-detector_|${REPOS[KIDDIN9]}"
+    "internet-detector_|${REPOS[KIDDIN9]}"
+    "internet-detector-mod-modem-restart_|${REPOS[KIDDIN9]}"
     "luci-app-temp-status_|${REPOS[KIDDIN9]}"
+    #"luci-theme-edge_|${REPOS[KIDDIN9]}"
+    
+    "luci-app-tinyfm_|https://api.github.com/repos/bobbyunknown/luci-app-tinyfm/releases/latest"
+    "luci-app-droidnet_|https://api.github.com/repos/animegasan/luci-app-droidmodem/releases/latest"
+    "luci-theme-alpha_|https://api.github.com/repos/de-quenx/luci-theme-alpha/releases/latest"
+    "luci-app-tailscale_|https://api.github.com/repos/asvow/luci-app-tailscale/releases/latest"
+    "luci-app-ipinfo_|https://api.github.com/repos/bobbyunknown/luci-app-ipinfo/releases/latest"
+    "luci-app-netmonitor_|https://api.github.com/repos/de-quenx/luci-app-netmonitor/releases/latest"
+    "luci-theme-argon_|https://api.github.com/repos/de-quenx/luci-theme-argon/releases/latest"
+    "luci-theme-rtawrt_|https://api.github.com/repos/de-quenx/luci-theme-rtawrt/releases/latest"
 )
 
-if [ "${TYPE}" == "OPHUB" ]; then
-    log "INFO" "Add Packages Amlogic In OPHUB.."
-    packages_custom+=(
-        "luci-app-amlogic_|https://api.github.com/repos/ophub/luci-app-amlogic/releases/latest"
-    )
-elif [ "${TYPE}" == "ULO" ]; then
-    log "INFO" "Add Packages Amlogic In ULO.."
+if [[ "${TYPE}" == "OPHUB" || "${TYPE}" == "ULO" ]]; then
+    log "INFO" "Add Packages Amlogic In ${TYPE}.."
     packages_custom+=(
         "luci-app-amlogic_|https://api.github.com/repos/ophub/luci-app-amlogic/releases/latest"
     )

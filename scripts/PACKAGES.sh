@@ -48,7 +48,8 @@ packages_custom+=(
     "luci-app-atcommands_|${REPOS[KIDDIN9]}"
     
     "luci-app-oled_|${REPOS[KIDDIN9]}"
-    "luci-app-tinyfm_|https://api.github.com/repos/bobbyunknown/luci-app-tinyfm/releases/latest"
+    #"luci-app-tinyfm_|https://api.github.com/repos/bobbyunknown/luci-app-tinyfm/releases/latest"
+    "luci-app-tinyfm_|${REPOS[KIDDIN9]}"
     "modemband_|${REPOS[IMMORTALWRT]}/packages"
     "luci-app-ramfree_|${REPOS[IMMORTALWRT]}/luci"
     "luci-app-modemband_|${REPOS[IMMORTALWRT]}/luci"

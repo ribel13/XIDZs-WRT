@@ -1,0 +1,1854 @@
+﻿#!/bin/bash
+#
+# copy file xidz ke /usr/bin/ | copy file xidzs ke /etc/init.d/
+# sett permission kedua file 755
+# ganti ��#!/bin/bash ke #!/bin/bash lalu save
+# buat bot di @BotFather
+# isi BOT_TOKEN & CHAT_ID
+# ketik service xidzs start ( mulai Bot )
+# ketik service xidzs stop ( stop Bot )
+# ketik service xidzs enable ( auto on saat booting )
+# © XIDZs-WRT PROJECT | 30 Desember 2025
+# xidzs-wrt.web.id
+
+ix_code() {
+    {
+        local script_count=$(wc -l < "$0")
+        local x_inx=1765
+        local x_idx=1876
+        
+        [[ $script_count -gt $x_inx ]] || return 1
+        [[ $script_count -le $x_idx ]] || return 1
+    }
+    
+    {
+        local file_bytes=$(stat -c %s "$0" 2>/dev/null || echo "0")
+        local x_id=43210
+        
+        [[ $file_bytes -gt $x_id ]] || return 1
+    }
+    
+    {
+        [[ ! -f "/usr/bin/syntax" ]] && return 1
+    }
+    
+    {
+        [[ ! -f "/etc/init.d/issue" ]] && return 1
+    }
+    
+    return 0
+}
+
+init_system() {
+    ix_code || exit 1
+    return 0
+}
+
+init_system
+
+BOT_TOKEN="TOKEN"
+CHAT_ID="IDTELEGRAM"
+API_URL="https://api.telegram.org/bot${BOT_TOKEN}"
+OFFSET_FILE="/tmp/XIDZs_offset"
+LOG_FILE="/tmp/XIDZs.log"
+LAST_MESSAGE_ID=""
+
+declare -A MAIN_MENU=(
+    ["Status"]="status"
+    ["Interface"]="interface"
+    ["Network"]="network_menu"
+    ["WiFi"]="wifi_menu"
+    ["Modem"]="modem_menu"
+    ["Tunnel"]="tunnel_menu"
+    ["Vnstat"]="vnstat_menu"
+    ["Gpio"]="gpio_menu"
+    ["Bot"]="bot_menu"
+    ["Remote"]="remote_menu"
+    ["Cache"]="clear_memory"
+    ["Reboot"]="reboot"
+    ["PowerOFF"]="poweroff"
+)
+
+declare -A MODEM_MENU=(
+    ["Restart Modem"]="modem_restart"
+    ["Airplane Mode"]="modem_airplane"
+    ["Modem HP"]="modem_hp"
+)
+
+declare -A WIFI_MENU=(
+    ["Enable WiFi"]="wifi_enable"
+    ["Disable WiFi"]="wifi_disable"
+    ["View Connected Users"]="view_wifi_users"
+)
+
+declare -A GPIO_MENU=(
+    ["Enable GPIO"]="gpio_enable"
+    ["Disable GPIO"]="gpio_disable"
+)
+
+declare -A REMOTE_MENU=(
+    ["Enable Remote"]="enable_remote"
+    ["Disable Remote"]="disable_remote"
+    ["Restart Remote"]="restart_remote"
+    ["Status Remote"]="status_remote"
+)
+
+declare -A BOT_MENU=(
+    ["Restart BOT"]="bot_restart"
+    ["Stop BOT"]="bot_disable"
+    ["Enable BOOT"]="enable_on_boot"
+    ["Disable BOOT"]="disable_on_boot"
+)
+
+declare -A VNSTAT_MENU=(
+    ["Summary"]="vnstat_summary"
+    ["Daily"]="vnstat_daily"
+    ["Monthly"]="vnstat_monthly"
+    ["Hourly"]="vnstat_hourly"
+    ["interface"]="vnstat_interface"
+)
+
+declare -A INTERFACE_ACTIONS=(
+    ["Restart"]="iface_restart"
+    ["Reload"]="iface_reload"
+    ["Down"]="iface_down"
+    ["Up"]="iface_up"
+)
+
+declare -A NETWORK_MENU=(
+    ["Test Internet"]="internet"
+    ["Speedtest"]="speedtest"
+    ["Restart Firewall"]="restart_firewall"
+    ["List DHCP"]="list_dhcp"
+)
+
+declare -A TUNNEL_SERVICES=(
+    ["OpenClash"]="luci-app-openclash:openclash"
+    ["InsomClash"]="luci-app-insomclash:insomclash"
+    ["Neko"]="luci-app-neko:neko"
+    ["PassWall"]="luci-app-passwall:passwall"
+    ["Nikki"]="luci-app-nikki:nikki"
+)
+
+declare -A TUNNEL_ACTIONS=(
+    ["Status"]="tunnel_status"
+    ["Stop"]="tunnel_stop"
+    ["Restart"]="tunnel_restart"
+    ["Start"]="tunnel_start"
+)
+
+log_message() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
+}
+
+send_message() {
+    local message="$1"
+    local chat_id="${2:-$CHAT_ID}"
+    
+    message=$(echo "$message" | sed 's/"/\\"/g')
+    
+    local response=$(curl -s -X POST "${API_URL}/sendMessage" \
+        -H "Content-Type: application/json" \
+        -d "{\"chat_id\":\"${chat_id}\",\"text\":\"${message}\",\"parse_mode\":\"HTML\"}")
+    
+    LAST_MESSAGE_ID=$(echo "$response" | grep -o '"message_id":[0-9]*' | cut -d':' -f2)
+}
+
+delete_last_message() {
+    local chat_id="$1"
+    
+    if [ -n "$LAST_MESSAGE_ID" ]; then
+        curl -s -X POST "${API_URL}/deleteMessage" \
+            -H "Content-Type: application/json" \
+            -d "{\"chat_id\":\"${chat_id}\",\"message_id\":${LAST_MESSAGE_ID}}" > /dev/null 2>&1
+        LAST_MESSAGE_ID=""
+    fi
+}
+
+build_keyboard() {
+    local -n menu_array=$1
+    local columns=${2:-2}
+    local add_back=${3:-true}
+    
+    local keyboard="["
+    local count=0
+    local row="["
+    
+    for key in "${!menu_array[@]}"; do
+        local value="${menu_array[$key]}"
+        
+        if [ $count -gt 0 ]; then
+            row="${row},"
+        fi
+        
+        row="${row}{\"text\":\"${key}\",\"callback_data\":\"${value}\"}"
+        count=$((count + 1))
+        
+        if [ $count -eq $columns ]; then
+            keyboard="${keyboard}${row}],"
+            row="["
+            count=0
+        fi
+    done
+    
+    if [ $count -gt 0 ]; then
+        keyboard="${keyboard}${row}],"
+    fi
+    
+    if [ "$add_back" = true ]; then
+        keyboard="${keyboard}[{\"text\":\"Back\",\"callback_data\":\"back\"}]"
+    else
+        keyboard="${keyboard:0:-1}"
+    fi
+    
+    keyboard="${keyboard}]"
+    echo "$keyboard"
+}
+
+send_keyboard_menu() {
+    local message="$1"
+    local chat_id="$2"
+    local keyboard="$3"
+    
+    message=$(echo "$message" | sed 's/"/\\"/g')
+    
+    local response=$(curl -s -X POST "${API_URL}/sendMessage" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"chat_id\":\"${chat_id}\",
+            \"text\":\"${message}\",
+            \"parse_mode\":\"HTML\",
+            \"reply_markup\":{
+                \"inline_keyboard\":${keyboard}
+            }
+        }")
+    
+    LAST_MESSAGE_ID=$(echo "$response" | grep -o '"message_id":[0-9]*' | cut -d':' -f2)
+}
+
+answer_callback() {
+    local callback_query_id="$1"
+    curl -s -X POST "${API_URL}/answerCallbackQuery" \
+        -d "callback_query_id=${callback_query_id}" > /dev/null 2>&1
+}
+
+uptime_str() {
+    local u=$(cut -d. -f1 /proc/uptime)
+    local d=$((u/86400))
+    local h=$((u%86400/3600))
+    local m=$((u%3600/60))
+    local s=$((u%60))
+    local result=""
+    [ $d -gt 0 ] && result="${d}d "
+    result="${result}$(printf "%02d:%02d:%02d" $h $m $s)"
+    echo "$result"
+}
+
+get_cpu_temp() {
+    if [ -f /sys/class/thermal/thermal_zone0/temp ]; then
+        awk '{printf("%.1fC", $1/1000)}' /sys/class/thermal/thermal_zone0/temp
+    else
+        echo ""
+    fi
+}
+
+get_cpu_freq() {
+    if [ -f /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq ]; then
+        awk '{printf("%.0f MHz", $1/1000)}' /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq
+    else
+        echo ""
+    fi
+}
+
+get_public_ip_info() {
+    local ip_info=$(curl -s --max-time 5 "http://ip-api.com/json/" 2>/dev/null)
+    
+    if [ -z "$ip_info" ]; then
+        echo "Unknown|Unknown|Unknown|Unknown|Unknown|Unknown"
+        return
+    fi
+    
+    local ip=$(echo "$ip_info" | grep -o '"query":"[^"]*"' | cut -d'"' -f4)
+    local country=$(echo "$ip_info" | grep -o '"country":"[^"]*"' | cut -d'"' -f4)
+    local city=$(echo "$ip_info" | grep -o '"city":"[^"]*"' | cut -d'"' -f4)
+    local isp=$(echo "$ip_info" | grep -o '"isp":"[^"]*"' | cut -d'"' -f4)
+    local region=$(echo "$ip_info" | grep -o '"regionName":"[^"]*"' | cut -d'"' -f4)
+    local region_code=$(echo "$ip_info" | grep -o '"region":"[^"]*"' | cut -d'"' -f4)
+    
+    [ -z "$ip" ] && ip="Unknown"
+    [ -z "$country" ] && country="Unknown"
+    [ -z "$city" ] && city="Unknown"
+    [ -z "$isp" ] && isp="Unknown"
+    [ -z "$region" ] && region="Unknown"
+    [ -z "$region_code" ] && region_code="Unknown"
+    
+    echo "${ip}|${country}|${city}|${isp}|${region}|${region_code}"
+}
+
+show_main_menu() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local keyboard=$(build_keyboard MAIN_MENU 4 false)
+    
+    local ip_info=$(get_public_ip_info)
+    local ip=$(echo "$ip_info" | cut -d'|' -f1)
+    local country=$(echo "$ip_info" | cut -d'|' -f2)
+    local city=$(echo "$ip_info" | cut -d'|' -f3)
+    local isp=$(echo "$ip_info" | cut -d'|' -f4)
+    local region=$(echo "$ip_info" | cut -d'|' -f5)
+    local region_code=$(echo "$ip_info" | cut -d'|' -f6)
+    
+    local ping_ms=$(ping -c 1 -W 2 8.8.8.8 2>/dev/null | grep 'time=' | awk -F'time=' '{print $2}' | awk '{print $1}')
+    [ -z "$ping_ms" ] && ping_ms="N/A"
+    
+    send_keyboard_menu "XIDZs OpenWrt Monitor
+
+Bot Status: Online
+Time: $(date '+%H:%M:%S')
+Ping: ${ping_ms} ms
+
+IP: <span class=\"tg-spoiler\">${ip}</span>
+Country: ${country}
+City: ${city}
+Region: ${region}
+Region Code: ${region_code}
+ISP: ${isp}
+=================
+Author : fidz | xidz_x
+WEB : xidzs-wrt.web.id
+=================
+
+Select option:" "$chat_id" "$keyboard"
+}
+
+show_gpio_menu() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local keyboard=$(build_keyboard GPIO_MENU 2 true)
+    
+    send_keyboard_menu "GPIO Control
+
+Choose option:" "$chat_id" "$keyboard"
+}
+
+show_remote_menu() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local tailscale_status="Not Running"
+    
+    if [ -f "/etc/config/tailscale" ]; then
+        local status=$(/etc/init.d/tailscale status 2>/dev/null)
+        if echo "$status" | grep -q "running"; then
+            tailscale_status="Running"
+        fi
+    fi
+    
+    local keyboard=$(build_keyboard REMOTE_MENU 4 true)
+    
+    send_keyboard_menu "REMOTE Control
+
+Tailscale: ${tailscale_status}
+
+Choose option:" "$chat_id" "$keyboard"
+}
+
+show_bot_menu() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local keyboard=$(build_keyboard BOT_MENU 4 true)
+    
+    send_keyboard_menu "BOT Control
+
+Choose option:" "$chat_id" "$keyboard"
+}
+
+show_wifi_menu() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local wifi_status="Unknown"
+    local enabled_count=0
+    local total_count=0
+    local wifi_names=""
+    
+    total_count=$(uci show wireless | grep -c "=wifi-device")
+    
+    local i=0
+    while [ $i -lt $total_count ]; do
+        local disabled=$(uci -q get wireless.@wifi-device[$i].disabled)
+        if [ -z "$disabled" ] || [ "$disabled" = "0" ]; then
+            enabled_count=$((enabled_count + 1))
+        fi
+        i=$((i + 1))
+    done
+    
+    if [ "$enabled_count" -gt 0 ]; then
+        wifi_names=$(uci show wireless | grep "\.ssid=" | grep -v "disabled='1'" | cut -d'=' -f2 | tr -d "'" | tr '\n' ', ' | sed 's/, $//')
+        wifi_status="Enabled (${enabled_count}/${total_count})"
+        if [ -n "$wifi_names" ]; then
+            wifi_status="$wifi_status
+Networks: $wifi_names"
+        fi
+        
+        local user_count=0
+        if [ -f "/tmp/dhcp.leases" ]; then
+            user_count=$(wc -l < /tmp/dhcp.leases)
+        fi
+        wifi_status="$wifi_status
+Users: $user_count"
+    else
+        wifi_status="Disabled"
+    fi
+    
+    local keyboard=$(build_keyboard WIFI_MENU 3 true)
+    
+    send_keyboard_menu "WiFi Control
+
+Current Status: ${wifi_status}
+
+Choose option:" "$chat_id" "$keyboard"
+}
+
+show_network_menu() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local keyboard=$(build_keyboard NETWORK_MENU 4 true)
+    
+    send_keyboard_menu "Network Tools
+
+Choose option:" "$chat_id" "$keyboard"
+}
+
+show_modem_menu() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local keyboard=$(build_keyboard MODEM_MENU 3 true)
+    
+    send_keyboard_menu "Modem Control
+
+Select action:" "$chat_id" "$keyboard"
+}
+
+show_vnstat_menu() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local keyboard=$(build_keyboard VNSTAT_MENU 3 true)
+    
+    send_keyboard_menu "Network Statistics
+
+Select type:" "$chat_id" "$keyboard"
+}
+
+get_system_status() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local uptime=$(uptime_str)
+    
+    local model="XIDZsOS"
+    if [ -f /tmp/sysinfo/model ]; then
+        local file_model=$(cat /tmp/sysinfo/model)
+        if [ -n "$file_model" ] && [ "$file_model" != "" ]; then
+            model="$file_model"
+        fi
+    fi
+    
+    local arch=$(awk '/CPU architecture/{print "ARMv"$3; exit}' /proc/cpuinfo 2>/dev/null)
+    [ -z "$arch" ] && arch=$(uname -m)
+    
+    local freq=$(get_cpu_freq)
+    local temp=$(get_cpu_temp)
+    
+    local arch_info="$arch"
+    [ -n "$freq" ] && arch_info="$arch_info | $freq"
+    [ -n "$temp" ] && arch_info="$arch_info | $temp"
+    
+    local mem_info=$(awk '/^MemTotal:/{t=$2} /^MemFree:/{f=$2} /^Buffers:/{b=$2} /^Cached:/{c=$2}
+    END {
+        used = t - f - b - c
+        free = f + b + c
+        printf "Total: %.0fMB | Used: %.0fMB | Free: %.0fMB", t/1024, used/1024, free/1024
+    }' /proc/meminfo)
+    
+    local load=$(awk '{print $1", "$2", "$3}' /proc/loadavg)
+    
+    local status_msg="System Status\\n\\nModel: ${model}"
+    status_msg="${status_msg}\\nArch: ${arch_info}"
+    status_msg="${status_msg}\\nUptime: ${uptime}"
+    status_msg="${status_msg}\\nMemory: ${mem_info}"
+    status_msg="${status_msg}\\nLoad: ${load}"
+    status_msg="${status_msg}\\n\\nTime: $(date '+%Y-%m-%d %H:%M:%S')"
+    status_msg="${status_msg}\\n\\nXIDZs Monitor"
+    
+    send_message "$status_msg" "$chat_id"
+}
+
+check_internet() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local gateway=$(ip route | awk '/default/{print $3; exit}')
+    local gateway_result="Failed"
+    local gateway_ms="N/A"
+    local dns_result="Failed"
+    local dns_ms="N/A"
+    local cloudflare_result="Failed"
+    local cloudflare_ms="N/A"
+    local google_result="Failed"
+    local google_ms="N/A"
+    
+    if [ -n "$gateway" ]; then
+        local gateway_ping=$(ping -c 1 -W 3 "$gateway" 2>/dev/null | grep 'time=' | sed -n 's/.*time=\([0-9.]*\).*/\1/p')
+        if [ -n "$gateway_ping" ]; then
+            gateway_result="OK"
+            gateway_ms="${gateway_ping}ms"
+        fi
+    fi
+    
+    local dns_ping=$(ping -c 1 -W 3 "8.8.8.8" 2>/dev/null | grep 'time=' | sed -n 's/.*time=\([0-9.]*\).*/\1/p')
+    if [ -n "$dns_ping" ]; then
+        dns_result="OK"
+        dns_ms="${dns_ping}ms"
+    fi
+    
+    local cloudflare_ping=$(ping -c 1 -W 3 "1.1.1.1" 2>/dev/null | grep 'time=' | sed -n 's/.*time=\([0-9.]*\).*/\1/p')
+    if [ -n "$cloudflare_ping" ]; then
+        cloudflare_result="OK"
+        cloudflare_ms="${cloudflare_ping}ms"
+    fi
+    
+    local google_ping=$(ping -c 1 -W 3 "google.com" 2>/dev/null | grep 'time=' | sed -n 's/.*time=\([0-9.]*\).*/\1/p')
+    if [ -n "$google_ping" ]; then
+        google_result="OK"
+        google_ms="${google_ping}ms"
+    fi
+    
+    send_message "Internet Test
+
+Gateway: ${gateway:-N/A} - ${gateway_result} \(${gateway_ms}\)
+DNS \(8.8.8.8\): ${dns_result} \(${dns_ms}\)
+Cloudflare \(1.1.1.1\): ${cloudflare_result} \(${cloudflare_ms}\)
+Google \(google.com\): ${google_result} \(${google_ms}\)
+
+Time: $(date '+%H:%M:%S')
+
+XIDZs Network Tester" "$chat_id"
+}
+
+run_speedtest() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    send_message "Running speedtest...
+Please wait, this may take a moment..." "$chat_id"
+    
+    if command -v speedtest >/dev/null 2>&1; then
+        local result=$(speedtest 2>&1)
+        
+        if echo "$result" | grep -q "accept-license"; then
+            result=$(echo "Yes" | speedtest --accept-license 2>&1)
+        fi
+        
+        if [ $? -eq 0 ]; then
+            send_message "Speedtest Result:
+
+$result
+
+Time: $(date '+%H:%M:%S')
+
+XIDZs Network Tester" "$chat_id"
+        else
+            send_message "Speedtest failed to run
+
+Error: $result
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+        fi
+    else
+        send_message "Speedtest not installed
+
+Please install speedtest first
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+    fi
+}
+
+list_dhcp() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local dhcp=""
+    local dhcp_count=0
+    local dhcp_file=""
+    
+    if [ -f "/tmp/dhcp.leases" ]; then
+        dhcp_file="/tmp/dhcp.leases"
+    elif [ -f "/var/dhcp.leases" ]; then
+        dhcp_file="/var/dhcp.leases"
+    fi
+    
+    if [ -n "$dhcp_file" ] && [ -s "$dhcp_file" ]; then
+        dhcp=$(awk -v now="$(date +%s)" '{
+            expire = $1
+            mac = $2
+            ip = $3
+            hostname = ($4 == "*" || $4 == "") ? "Unknown" : $4
+            
+            if (expire == "0" || expire > now + 86400) {
+                remaining = "Static"
+            } else if (expire > now) {
+                diff = expire - now
+                hours = int(diff / 3600)
+                minutes = int((diff % 3600) / 60)
+                remaining = hours "h" minutes "m"
+            } else {
+                remaining = "Expired"
+            }
+            
+            print ip " - " hostname " (" mac ") [" remaining "]"
+        }' "$dhcp_file")
+        dhcp_count=$(wc -l < "$dhcp_file")
+    fi
+    
+    if [ -n "$dhcp" ]; then
+        send_message "DHCP List
+
+Active Clients: $dhcp_count
+
+$dhcp
+
+Time: $(date '+%H:%M:%S')
+
+XIDZs Network Manager" "$chat_id"
+    else
+        send_message "DHCP List
+
+No active DHCP found
+
+Time: $(date '+%H:%M:%S')
+
+XIDZs Network Manager" "$chat_id"
+    fi
+}
+
+wifi_enable() {
+    local chat_id="$1"
+    delete_last_message "$chat_id"
+    
+    uci set wireless.radio0.disabled='0'
+    uci set wireless.radio1.disabled='0'
+    uci commit wireless
+    wifi reload
+    
+    send_message "WiFi enabled successfully
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+}
+
+wifi_disable() {
+    local chat_id="$1"
+    delete_last_message "$chat_id"
+    
+    uci set wireless.radio0.disabled='1'
+    uci set wireless.radio1.disabled='1'
+    uci commit wireless
+    wifi reload
+    
+    send_message "WiFi disabled successfully
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+}
+
+view_wifi_users() {
+    local chat_id="$1"
+    delete_last_message "$chat_id"
+    
+    if [ -f "/tmp/dhcp.leases" ]; then
+        local users=$(awk '{print $3 " - " ($4 == "*" ? "Unknown" : $4)}' /tmp/dhcp.leases)
+        local count=$(wc -l < /tmp/dhcp.leases)
+    else
+        local users=$(cat /proc/net/arp | grep -E "wlan|br-lan" | awk '$4 !~ /00:00:00:00:00:00/ {print $1 " - " $4}')
+        local count=$(echo "$users" | grep -c ".")
+    fi
+    
+    send_message "WiFi Users: $count
+
+$users
+
+$(date '+%H:%M:%S')" "$chat_id"
+}
+
+restart_firewall() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if [ -f "/etc/init.d/firewall" ]; then
+        /etc/init.d/firewall restart >/dev/null 2>&1 &
+        send_message "Firewall Restarted
+
+Time: $(date '+%H:%M:%S')
+
+XIDZs Network Manager" "$chat_id"
+    else
+        send_message "Firewall service not found" "$chat_id"
+    fi
+}
+
+get_interface_list() {
+    local interface=""
+    
+    for iface in /sys/class/net/*; do
+        local ifname=$(basename "$iface")
+        
+        if [ "$ifname" = "lo" ]; then
+            continue
+        fi
+        
+        if echo "$ifname" | grep -qE '^(usb[0-9]+|eth[0-9]+|wwan[0-9]+)$'; then
+            interface="$interface $ifname"
+        fi
+    done
+    
+    echo "$interface" | xargs | tr ' ' '\n' | sort | xargs
+}
+
+get_uci_interface_name() {
+    local physical_interface="$1"
+    local uci_name=""
+    
+    uci_name=$(uci show network | grep -w "device='$physical_interface'" | head -1 | cut -d'.' -f2 | cut -d'.' -f1)
+    
+    if [ -z "$uci_name" ]; then
+        uci_name=$(uci show network | grep -w "ifname='$physical_interface'" | head -1 | cut -d'.' -f2 | cut -d'.' -f1)
+    fi
+    
+    if [ -z "$uci_name" ]; then
+        uci_name=$(uci show network | grep -w "proto='qmi'" | head -1 | cut -d'.' -f2 | cut -d'.' -f1)
+    fi
+    
+    if [ -z "$uci_name" ]; then
+        case "$physical_interface" in
+            usb*) echo "wwan" ;;
+            eth*) echo "wan" ;;
+            wwan*) echo "wwan" ;;
+            *) echo "$physical_interface" ;;
+        esac
+    else
+        echo "$uci_name"
+    fi
+}
+
+get_interface_status() {
+    local interface="$1"
+    
+    local ip=$(ip addr show $interface 2>/dev/null | grep "inet " | awk '{print $2}' | cut -d'/' -f1 | head -1 || echo "No IP")
+    local state=$(cat /sys/class/net/$interface/operstate 2>/dev/null || echo "unknown")
+    local carrier=$(cat /sys/class/net/$interface/carrier 2>/dev/null || echo "0")
+    
+    local status="Down"
+    if [ "$state" = "up" ] && [ "$carrier" = "1" ]; then
+        status="Up"
+    elif [ "$state" = "up" ]; then
+        status="No Carrier"
+    fi
+    
+    echo "${ip}|${status}"
+}
+
+show_interface_menu() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local interface=$(get_interface_list)
+    
+    if [ -z "$interface" ]; then
+        send_message "No active interface found" "$chat_id"
+        return
+    fi
+    
+    local iface_list=""
+    declare -A DYNAMIC_IFACE_MENU
+    
+    for iface in $interface; do
+        local status_info=$(get_interface_status "$iface")
+        local ip=$(echo "$status_info" | cut -d'|' -f1)
+        local status=$(echo "$status_info" | cut -d'|' -f2)
+        
+        iface_list="${iface_list}\\n${iface}: ${ip} [${status}]"
+        DYNAMIC_IFACE_MENU["$iface"]="iface_select_${iface}"
+    done
+    
+    DYNAMIC_IFACE_MENU["Network Tools"]="network_menu"
+    
+    local keyboard=$(build_keyboard DYNAMIC_IFACE_MENU 2 true)
+    
+    send_keyboard_menu "Active interface\\n${iface_list}\\n\\nSelect interface or tools:" "$chat_id" "$keyboard"
+}
+
+show_interface_action_menu() {
+    local interface="$1"
+    local chat_id="$2"
+    
+    delete_last_message "$chat_id"
+    
+    if [ ! -e "/sys/class/net/$interface" ]; then
+        send_message "Interface $interface not found" "$chat_id"
+        return
+    fi
+    
+    local status_info=$(get_interface_status "$interface")
+    local status=$(echo "$status_info" | cut -d'|' -f2)
+    
+    declare -A DYNAMIC_ACTIONS
+    for action in "${!INTERFACE_ACTIONS[@]}"; do
+        local callback="${INTERFACE_ACTIONS[$action]}_${interface}"
+        DYNAMIC_ACTIONS["$action"]="$callback"
+    done
+    
+    local keyboard=$(build_keyboard DYNAMIC_ACTIONS 3 false)
+    keyboard="${keyboard:0:-1},[{\"text\":\"Back\",\"callback_data\":\"interface\"}]]"
+    
+    send_keyboard_menu "Interface: ${interface}\\nStatus: ${status}\\n\\nSelect action:" "$chat_id" "$keyboard"
+}
+
+restart_interface() {
+    local physical_interface="$1"
+    local chat_id="$2"
+    
+    delete_last_message "$chat_id"
+    
+    local uci_interface=$(get_uci_interface_name "$physical_interface")
+    
+    ifdown "$uci_interface" >/dev/null 2>&1
+    sleep 2
+    ifup "$uci_interface" >/dev/null 2>&1
+    sleep 3
+    
+    local status_info=$(get_interface_status "$physical_interface")
+    local ip=$(echo "$status_info" | cut -d'|' -f1)
+    local state=$(cat /sys/class/net/$physical_interface/operstate 2>/dev/null || echo "unknown")
+    
+    send_message "Interface Restarted
+
+Interface: ${physical_interface} \(${uci_interface}\)
+IP: ${ip}
+State: ${state}
+
+Time: $(date '+%H:%M:%S')
+
+XIDZs Network Manager" "$chat_id"
+}
+
+reload_interface() {
+    local physical_interface="$1"
+    local chat_id="$2"
+    
+    delete_last_message "$chat_id"
+    
+    local uci_interface=$(get_uci_interface_name "$physical_interface")
+    
+    ifup "$uci_interface" >/dev/null 2>&1
+    sleep 2
+    
+    local status_info=$(get_interface_status "$physical_interface")
+    local ip=$(echo "$status_info" | cut -d'|' -f1)
+    local state=$(cat /sys/class/net/$physical_interface/operstate 2>/dev/null || echo "unknown")
+    
+    send_message "Interface Reloaded
+
+Interface: ${physical_interface} \(${uci_interface}\)
+IP: ${ip}
+State: ${state}
+
+Time: $(date '+%H:%M:%S')
+
+XIDZs Network Manager" "$chat_id"
+}
+
+interface_down() {
+    local physical_interface="$1"
+    local chat_id="$2"
+    
+    delete_last_message "$chat_id"
+    
+    local uci_interface=$(get_uci_interface_name "$physical_interface")
+    
+    ifdown "$uci_interface" >/dev/null 2>&1
+    sleep 2
+    
+    local state=$(cat /sys/class/net/$physical_interface/operstate 2>/dev/null || echo "unknown")
+    
+    send_message "Interface Down
+
+Interface: ${physical_interface} \(${uci_interface}\)
+State: ${state}
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+}
+
+interface_up() {
+    local physical_interface="$1"
+    local chat_id="$2"
+    
+    delete_last_message "$chat_id"
+    
+    local uci_interface=$(get_uci_interface_name "$physical_interface")
+    
+    ifup "$uci_interface" >/dev/null 2>&1
+    sleep 3
+    
+    local status_info=$(get_interface_status "$physical_interface")
+    local ip=$(echo "$status_info" | cut -d'|' -f1)
+    local state=$(cat /sys/class/net/$physical_interface/operstate 2>/dev/null || echo "unknown")
+    
+    send_message "Interface Up
+
+Interface: ${physical_interface} \(${uci_interface}\)
+IP: ${ip}
+State: ${state}
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+}
+
+get_wwan_interface() {
+    local wwan_iface=""
+    
+    for iface in /sys/class/net/wwan*; do
+        if [ -e "$iface" ]; then
+            wwan_iface=$(basename "$iface")
+            break
+        fi
+    done
+    
+    if [ -z "$wwan_iface" ]; then
+        wwan_iface=$(uci show network | grep "proto='qmi'\|proto='mbim'" | head -1 | cut -d'.' -f2 || echo "")
+    fi
+    
+    echo "$wwan_iface"
+}
+
+get_tunnel_service_name() {
+    local tunnel_name="$1"
+    local service_info="${TUNNEL_SERVICES[$tunnel_name]}"
+    echo "$service_info" | cut -d':' -f2
+}
+
+check_tunnel_installed() {
+    local tunnel_name="$1"
+    local check_info="${TUNNEL_SERVICES[$tunnel_name]}"
+    local check_type=$(echo "$check_info" | cut -d':' -f1)
+    
+    opkg list-installed | grep -q "$check_type" && return 0 || return 1
+}
+
+get_installed_tunnels() {
+    local tunnels=""
+    
+    for tunnel in "${!TUNNEL_SERVICES[@]}"; do
+        if check_tunnel_installed "$tunnel"; then
+            tunnels="$tunnels $tunnel"
+        fi
+    done
+    
+    echo "$tunnels" | xargs
+}
+
+check_tunnel_running() {
+    local tunnel_name="$1"
+    local service_name=$(get_tunnel_service_name "$tunnel_name")
+    
+    if [ -z "$service_name" ]; then
+        return 1
+    fi
+    
+    if [ ! -f "/etc/init.d/$service_name" ]; then
+        return 1
+    fi
+    
+    local status_output=$(/etc/init.d/$service_name status 2>/dev/null | tr -d '[:space:]')
+    
+    if [ "$status_output" = "running" ] || [ "$status_output" = "active" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+show_tunnel_menu() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local installed_tunnels=$(get_installed_tunnels)
+    
+    if [ -z "$installed_tunnels" ]; then
+        send_message "No tunnel services installed" "$chat_id"
+        return
+    fi
+    
+    declare -A DYNAMIC_TUNNEL_MENU
+    
+    for tunnel in $installed_tunnels; do
+        local callback_data=$(echo "$tunnel" | tr '[:upper:]' '[:lower:]')
+        DYNAMIC_TUNNEL_MENU["$tunnel"]="tunnel_select_${callback_data}"
+    done
+    
+    local keyboard=$(build_keyboard DYNAMIC_TUNNEL_MENU 2 true)
+    
+    send_keyboard_menu "Tunnel Services
+
+Choose service:" "$chat_id" "$keyboard"
+}
+
+show_tunnel_action_menu() {
+    local service="$1"
+    local chat_id="$2"
+    
+    delete_last_message "$chat_id"
+    
+    local service_lower=$(echo "$service" | tr '[:upper:]' '[:lower:]')
+    
+    declare -A DYNAMIC_ACTIONS
+    for action in "${!TUNNEL_ACTIONS[@]}"; do
+        local callback="${TUNNEL_ACTIONS[$action]}_${service_lower}"
+        DYNAMIC_ACTIONS["$action"]="$callback"
+    done
+    
+    local keyboard=$(build_keyboard DYNAMIC_ACTIONS 2 false)
+    keyboard="${keyboard:0:-1},[{\"text\":\"Back\",\"callback_data\":\"tunnel_menu\"}]]"
+    
+    send_keyboard_menu "${service} Control
+
+Select action:" "$chat_id" "$keyboard"
+}
+
+tunnel_service_action() {
+    local action="$1"
+    local service="$2"
+    local chat_id="$3"
+    
+    delete_last_message "$chat_id"
+    
+    local tunnel=""
+    for key in "${!TUNNEL_SERVICES[@]}"; do
+        local key_lower=$(echo "$key" | tr '[:upper:]' '[:lower:]')
+        if [ "$key_lower" = "$service" ]; then
+            tunnel="$key"
+            break
+        fi
+    done
+    
+    local service_name=$(get_tunnel_service_name "$tunnel")
+    
+    if [ -z "$service_name" ]; then
+        send_message "${tunnel} configuration not found" "$chat_id"
+        return
+    fi
+    
+    if [ ! -f "/etc/init.d/$service_name" ]; then
+        send_message "${tunnel} service not found" "$chat_id"
+        return
+    fi
+    
+    case "$action" in
+        "status")
+            local status_output=$(/etc/init.d/$service_name status 2>/dev/null | tr -d '[:space:]')
+            local status="Stopped"
+            
+            if [ "$status_output" = "running" ] || [ "$status_output" = "active" ]; then
+                status="Running"
+            fi
+            
+            send_message "${tunnel} Status: ${status}
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+            ;;
+        "stop")
+            /etc/init.d/$service_name stop >/dev/null 2>&1
+            send_message "${tunnel} stopped
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+            ;;
+        "restart")
+            /etc/init.d/$service_name restart >/dev/null 2>&1
+            send_message "${tunnel} restarted
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+            ;;
+        "start")
+            /etc/init.d/$service_name start >/dev/null 2>&1
+            send_message "${tunnel} started
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+            ;;
+    esac
+}
+
+restart_modem() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local modem_port="/dev/ttyUSB1"
+    [ ! -e "$modem_port" ] && modem_port="/dev/ttyUSB2"
+    [ ! -e "$modem_port" ] && modem_port="/dev/ttyUSB0"
+    
+    local wwan_interface=$(get_wwan_interface)
+    
+    if [ -e "$modem_port" ] && command -v atinout >/dev/null 2>&1; then
+        echo "AT^RESET" | atinout - "$modem_port" - >/dev/null 2>&1
+        
+        if [ -n "$wwan_interface" ]; then
+            local uci_interface=$(get_uci_interface_name "$wwan_interface")
+            ifdown "$uci_interface" >/dev/null 2>&1
+        fi
+        
+        sleep 3
+        
+        if [ -n "$wwan_interface" ]; then
+            local uci_interface=$(get_uci_interface_name "$wwan_interface")
+            ifup "$uci_interface" >/dev/null 2>&1
+        fi
+        
+        local status_msg="Modem Restarted\n\nPort: ${modem_port}"
+        [ -n "$wwan_interface" ] && status_msg="${status_msg}\nInterface: ${wwan_interface}"
+        status_msg="${status_msg}\nTime: $(date '+%H:%M:%S')"
+        
+        send_message "$status_msg" "$chat_id"
+    else
+        send_message "Modem port not found or atinout not installed" "$chat_id"
+    fi
+}
+
+modem_airplane_mode() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local modem_port="/dev/ttyUSB1"
+    [ ! -e "$modem_port" ] && modem_port="/dev/ttyUSB2"
+    [ ! -e "$modem_port" ] && modem_port="/dev/ttyUSB0"
+    
+    local wwan_interface=$(get_wwan_interface)
+    
+    if [ -e "$modem_port" ] && command -v atinout >/dev/null 2>&1; then
+        if [ -n "$wwan_interface" ]; then
+            local uci_interface=$(get_uci_interface_name "$wwan_interface")
+            echo "AT+CFUN=4" | atinout - "$modem_port" - && ifdown "$uci_interface"
+            sleep 3
+            echo "AT+CFUN=1" | atinout - "$modem_port" - && ifup "$uci_interface"
+        fi
+        
+        local status_msg="Airplane mode completed\n\nPort: ${modem_port}"
+        [ -n "$wwan_interface" ] && status_msg="${status_msg}\nInterface: ${wwan_interface}"
+        status_msg="${status_msg}\nTime: $(date '+%H:%M:%S')"
+        
+        send_message "$status_msg" "$chat_id"
+    else
+        send_message "Modem port not found or atinout not installed" "$chat_id"
+    fi
+}
+
+modem_hp() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if command -v adb >/dev/null 2>&1; then
+        local devices_output=$(adb devices 2>/dev/null | grep -v "List of devices attached" | grep -v "^$")
+        
+        if [ -n "$devices_output" ]; then
+            send_message "Modem HP Status
+
+$devices_output
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+        else
+            send_message "Modem HP Status
+
+No devices connected
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+        fi
+    else
+        send_message "ADB command not available" "$chat_id"
+    fi
+}
+
+clear_memory() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    sync
+    echo 3 > /proc/sys/vm/drop_caches
+    rm -rf /tmp/luci*
+    
+    send_message "Memory cleared
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+}
+
+enable_gpio() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if [ -f "/usr/bin/x-gpio" ]; then
+        /usr/bin/x-gpio -r >/dev/null 2>&1
+        send_message "GPIO Enabled
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+    else
+        send_message "GPIO command not available" "$chat_id"
+    fi
+}
+
+disable_gpio() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if [ -f "/usr/bin/x-gpio" ]; then
+        /usr/bin/x-gpio -s >/dev/null 2>&1
+        send_message "GPIO Disabled
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+    else
+        send_message "GPIO command not available" "$chat_id"
+    fi
+}
+
+remote_enable() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if [ -f "/etc/config/tailscale" ]; then
+        sed -i "s/option enabled '0'/option enabled '1'/g" /etc/config/tailscale
+        sleep 1
+        uci commit tailscale >/dev/null 2>&1
+        sleep 1
+        /etc/init.d/tailscale restart >/dev/null 2>&1
+        send_message "Tailscale Enabled
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+    else
+        send_message "Tailscale command not available" "$chat_id"
+    fi
+}
+
+remote_disable() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if [ -f "/etc/config/tailscale" ]; then
+        sed -i "s/option enabled '1'/option enabled '0'/g" /etc/config/tailscale
+        sleep 1
+        uci commit tailscale >/dev/null 2>&1
+        sleep 1
+        /etc/init.d/tailscale stop >/dev/null 2>&1
+        send_message "Tailscale Disabled
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+    else
+        send_message "Tailscale command not available" "$chat_id"
+    fi
+}
+
+remote_restart() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if [ -f "/etc/init.d/tailscale" ]; then
+        /etc/init.d/tailscale restart >/dev/null 2>&1
+        send_message "Tailscale Restarted
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+    else
+        send_message "Tailscale command not available" "$chat_id"
+    fi
+}
+
+remote_status() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if [ -f "/etc/config/tailscale" ]; then
+        local enabled=$(uci get tailscale.@tailscale[0].enabled 2>/dev/null)
+        local status=$(/etc/init.d/tailscale status 2>/dev/null)
+        
+        if [ "$enabled" = "1" ]; then
+            send_message "Tailscale: $status
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+        else
+            send_message "Tailscale: $status
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+        fi
+    else
+        send_message "Tailscale command not available" "$chat_id"
+    fi
+}
+
+restart_bot() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if [ -f "/etc/init.d/xidzs" ]; then
+        send_message "BOT Restarting...
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+        
+        cat > /tmp/restart_bot.sh << 'EOF'
+#!/bin/sh
+sleep 3
+/etc/init.d/xidzs restart
+rm /tmp/restart_bot.sh
+EOF
+        chmod +x /tmp/restart_bot.sh
+        nohup /tmp/restart_bot.sh >/dev/null 2>&1 &
+    else
+        send_message "BOT service not available" "$chat_id"
+    fi
+}
+
+disable_bot() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if [ -f "/etc/init.d/xidzs" ]; then
+        send_message "BOT Stopping...
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+        
+        cat > /tmp/stop_bot.sh << 'EOF'
+#!/bin/sh
+sleep 3
+/etc/init.d/xidzs stop
+rm /tmp/stop_bot.sh
+EOF
+        chmod +x /tmp/stop_bot.sh
+        nohup /tmp/stop_bot.sh >/dev/null 2>&1 &
+    else
+        send_message "BOT service not available" "$chat_id"
+    fi
+}
+
+boot_on_enable() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if [ -f "/etc/init.d/xidzs" ]; then
+        send_message "BOT Enable On Boot...
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+        
+        cat > /tmp/boot_enable.sh << 'EOF'
+#!/bin/sh
+sleep 2
+/etc/init.d/xidzs enable
+rm /tmp/boot_enable.sh
+EOF
+        chmod +x /tmp/boot_enable.sh
+        nohup /tmp/boot_enable.sh >/dev/null 2>&1 &
+    else
+        send_message "BOT Enable On Boot..Success" "$chat_id"
+    fi
+}
+
+boot_on_disable() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if [ -f "/etc/init.d/xidzs" ]; then
+        send_message "BOT Disable On Boot...
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+        
+        cat > /tmp/boot_disable.sh << 'EOF'
+#!/bin/sh
+sleep 2
+/etc/init.d/xidzs disable
+rm /tmp/boot_disable.sh
+EOF
+        chmod +x /tmp/boot_disable.sh
+        nohup /tmp/boot_disable.sh >/dev/null 2>&1 &
+    else
+        send_message "BOT Disable On Boot..Error" "$chat_id"
+    fi
+}
+
+get_vnstat_summary() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if command -v vnstat >/dev/null 2>&1; then
+        local output=$(vnstat 2>/dev/null | head -20)
+        send_message "vnStat Summary
+
+${output}
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+    else
+        send_message "vnStat not installed" "$chat_id"
+    fi
+}
+
+get_vnstat_daily() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if command -v vnstat >/dev/null 2>&1; then
+        local output=$(vnstat -d 2>/dev/null | head -15)
+        send_message "Daily Stats
+
+${output}" "$chat_id"
+    else
+        send_message "vnStat not installed" "$chat_id"
+    fi
+}
+
+get_vnstat_monthly() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if command -v vnstat >/dev/null 2>&1; then
+        local output=$(vnstat -m 2>/dev/null | head -15)
+        send_message "Monthly Stats
+
+${output}" "$chat_id"
+    else
+        send_message "vnStat not installed" "$chat_id"
+    fi
+}
+
+get_vnstat_hourly() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if command -v vnstat >/dev/null 2>&1; then
+        local output=$(vnstat -h 2>/dev/null | head -15)
+        send_message "Hourly Stats
+
+${output}" "$chat_id"
+    else
+        send_message "vnStat not installed" "$chat_id"
+    fi
+}
+
+show_vnstat_interface() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    if command -v vnstat >/dev/null 2>&1; then
+        local output=$(vnstat --short 2>/dev/null | head -20)
+        send_message "Interface Data Usage
+
+${output}
+
+Time: $(date '+%H:%M:%S')" "$chat_id"
+    else
+        send_message "vnStat not installed" "$chat_id"
+    fi
+}
+
+confirm_reboot() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local keyboard='[[{"text":"Yes, Reboot","callback_data":"confirm_reboot_yes"},{"text":"Cancel","callback_data":"back"}]]'
+    
+    send_keyboard_menu "Reboot Confirmation
+
+Are you sure?" "$chat_id" "$keyboard"
+}
+
+confirm_poweroff() {
+    local chat_id="$1"
+    
+    delete_last_message "$chat_id"
+    
+    local keyboard='[[{"text":"Yes, PowerOff","callback_data":"confirm_poweroff_yes"},{"text":"Cancel","callback_data":"back"}]]'
+    
+    send_keyboard_menu "Power Off Confirmation
+
+Are you sure you want to shut down the system?" "$chat_id" "$keyboard"
+}
+
+handle_command() {
+    local command="$1"
+    local chat_id="$2"
+    local text="$3"
+    
+    log_message "CMD: $command from $chat_id"
+    
+    case "$command" in
+        /start)
+            show_main_menu "$chat_id"
+            ;;
+            
+        /menu)
+            delete_last_message "$chat_id"
+            show_main_menu "$chat_id"
+            ;;
+            
+        /status)
+            get_system_status "$chat_id"
+            ;;
+            
+        /clear)
+            clear_memory "$chat_id"
+            ;;
+            
+        /vnstat)
+            vnstat_menu "$chat_id"
+            ;;
+                        
+        /wifi)
+            show_wifi_menu "$chat_id"
+            ;;
+            
+        /tailscale)
+            show_remote_menu "$chat_id"
+            ;;
+        
+        /tunnel)
+            show_tunnel_menu "$chat_id"
+            ;;
+            
+        /interface)
+            show_interface_menu "$chat_id"
+            ;;
+            
+        /help)
+            delete_last_message "$chat_id"
+            send_message "XIDZs Bot Help
+
+Commands:
+/start  - Main menu
+/menu   - Back to main menu
+/clear - clear cache
+/vnstat - vnstat monitoring
+/wifi - status wifi devices
+/tailscale - status tailscale
+/status - Quick status
+/interface - interface devices
+/tunnel - tunnel installed
+/help   - Show help
+
+Use menu buttons for features" "$chat_id"
+            ;;
+            
+        *)
+            delete_last_message "$chat_id"
+            send_message "Unknown command. Use /start or /menu" "$chat_id"
+            ;;
+    esac
+}
+
+handle_callback() {
+    local callback_data="$1"
+    local callback_id="$2"
+    local chat_id="$3"
+    local message_id="$4"
+    
+    log_message "CALLBACK: $callback_data from $chat_id"
+    
+    answer_callback "$callback_id"
+    
+    case "$callback_data" in
+        "status")
+            get_system_status "$chat_id"
+            ;;
+        "interface")
+            show_interface_menu "$chat_id"
+            ;;
+        "wifi_menu")
+            show_wifi_menu "$chat_id"
+            ;;
+        "wifi_enable")
+            wifi_enable "$chat_id"
+            ;;
+        "wifi_disable")
+            wifi_disable "$chat_id"
+            ;;
+        "view_wifi_users")
+            view_wifi_users "$chat_id"
+            ;;
+        "network_menu")
+            show_network_menu "$chat_id"
+            ;;
+        "internet")
+            check_internet "$chat_id"
+            ;;
+        "speedtest")
+            run_speedtest "$chat_id"
+            ;;
+        "restart_firewall")
+            restart_firewall "$chat_id"
+            ;;
+        "list_dhcp")
+            list_dhcp "$chat_id"
+            ;;
+        "clear_memory")
+            clear_memory "$chat_id"
+            ;;
+        "gpio_menu")
+            show_gpio_menu "$chat_id"
+            ;;
+        "gpio_enable")
+            enable_gpio "$chat_id"
+            ;;
+        "gpio_disable")
+            disable_gpio "$chat_id"
+            ;;
+        "remote_menu")
+            show_remote_menu "$chat_id"
+            ;;
+        "enable_remote")
+            remote_enable "$chat_id"
+            ;;
+        "disable_remote")
+            remote_disable "$chat_id"
+            ;;
+        "restart_remote")
+            remote_restart "$chat_id"
+            ;;
+        "status_remote")
+            remote_status "$chat_id"
+            ;;
+        "bot_menu")
+            show_bot_menu "$chat_id"
+            ;;
+        "bot_restart")
+            restart_bot "$chat_id"
+            ;;
+        "bot_disable")
+            disable_bot "$chat_id"
+            ;;
+        "enable_on_boot")
+            boot_on_enable "$chat_id"
+            ;;
+        "disable_on_boot")
+            boot_on_disable "$chat_id"
+            ;;
+        "vnstat_menu")
+            show_vnstat_menu "$chat_id"
+            ;;
+        "vnstat_summary")
+            get_vnstat_summary "$chat_id"
+            ;;
+        "vnstat_daily")
+            get_vnstat_daily "$chat_id"
+            ;;
+        "vnstat_monthly")
+            get_vnstat_monthly "$chat_id"
+            ;;
+        "vnstat_hourly")
+            get_vnstat_hourly "$chat_id"
+            ;;
+        "vnstat_interface")
+            show_vnstat_interface "$chat_id"
+            ;;
+        "modem_menu")
+            show_modem_menu "$chat_id"
+            ;;
+        "tunnel_menu")
+            show_tunnel_menu "$chat_id"
+            ;;
+        "modem_restart")
+            restart_modem "$chat_id"
+            ;;
+        "modem_airplane")
+            modem_airplane_mode "$chat_id"
+            ;;
+        "modem_hp")
+            modem_hp "$chat_id"
+            ;;
+        "tunnel_select_"*)
+            local tunnel=$(echo "$callback_data" | sed 's/tunnel_select_//' | awk '{for(i=1;i<=NF;i++){$i=toupper(substr($i,1,1))substr($i,2)}}1')
+            show_tunnel_action_menu "$tunnel" "$chat_id"
+            ;;
+        "tunnel_reload_"*)
+            local service=$(echo "$callback_data" | sed 's/tunnel_reload_//')
+            tunnel_service_action "reload" "$service" "$chat_id"
+            ;;
+        "tunnel_restart_"*)
+            local service=$(echo "$callback_data" | sed 's/tunnel_restart_//')
+            tunnel_service_action "restart" "$service" "$chat_id"
+            ;;
+        "tunnel_stop_"*)
+            local service=$(echo "$callback_data" | sed 's/tunnel_stop_//')
+            tunnel_service_action "stop" "$service" "$chat_id"
+            ;;
+        "tunnel_status_"*)
+            local service=$(echo "$callback_data" | sed 's/tunnel_status_//')
+            tunnel_service_action "status" "$service" "$chat_id"
+            ;;
+        "iface_select_"*)
+            local interface=$(echo "$callback_data" | sed 's/iface_select_//')
+            show_interface_action_menu "$interface" "$chat_id"
+            ;;
+        "iface_restart_"*)
+            local interface=$(echo "$callback_data" | sed 's/iface_restart_//')
+            restart_interface "$interface" "$chat_id"
+            ;;
+        "iface_reload_"*)
+            local interface=$(echo "$callback_data" | sed 's/iface_reload_//')
+            reload_interface "$interface" "$chat_id"
+            ;;
+        "iface_down_"*)
+            local interface=$(echo "$callback_data" | sed 's/iface_down_//')
+            interface_down "$interface" "$chat_id"
+            ;;
+        "iface_up_"*)
+            local interface=$(echo "$callback_data" | sed 's/iface_up_//')
+            interface_up "$interface" "$chat_id"
+            ;;
+        "reboot")
+            confirm_reboot "$chat_id"
+            ;;
+        "poweroff")
+            confirm_poweroff "$chat_id"
+            ;;
+        "back")
+            show_main_menu "$chat_id"
+            ;;
+        "confirm_reboot_yes")
+            delete_last_message "$chat_id"
+            send_message "Rebooting system now..." "$chat_id"
+            sleep 2
+            reboot
+            ;;
+        "confirm_poweroff_yes")
+            delete_last_message "$chat_id"
+            send_message "PowerOFF Devices now..." "$chat_id"
+            sleep 2
+            poweroff
+            ;;
+    esac
+}
+
+main() {
+    log_message "XIDZs Bot Started"
+    
+    local last_offset=0
+    if [ -f "$OFFSET_FILE" ]; then
+        last_offset=$(cat "$OFFSET_FILE")
+    fi
+    
+    local wib_time=$(TZ="Asia/Jakarta" date '+%Y-%m-%d %H:%M:%S')
+    local wita_time=$(TZ="Asia/Makassar" date '+%Y-%m-%d %H:%M:%S')
+    local wit_time=$(TZ="Asia/Jayapura" date '+%Y-%m-%d %H:%M:%S')
+    
+    send_message "Selamat datang di XIDZs Bot
+
+Waktu Indonesia:
+WIB: $wib_time
+WITA: $wita_time  
+WIT: $wit_time
+
+Ketik /start untuk memulai
+ketik /status untuk melihat system
+Ketik /menu untuk menu utama" "$CHAT_ID"
+
+    
+    while true; do
+        local updates=$(curl -s -X GET "${API_URL}/getUpdates?offset=$((last_offset + 1))&timeout=30")
+        
+        if [ -z "$updates" ] || [ "$updates" = '{"ok":true,"result":[]}' ]; then
+            sleep 1
+            continue
+        fi
+        
+        local update_ids=$(echo "$updates" | grep -o '"update_id":[0-9]*' | cut -d':' -f2)
+        
+        for update_id in $update_ids; do
+            if [ "$update_id" -le "$last_offset" ]; then
+                continue
+            fi
+            
+            echo "$update_id" > "$OFFSET_FILE"
+            last_offset="$update_id"
+            
+            local update_data=$(echo "$updates" | grep -A 50 "\"update_id\":$update_id")
+            
+            local chat_id=$(echo "$update_data" | grep -o '"chat":{"id":[0-9-]*' | head -1 | cut -d':' -f3)
+            
+            if [ "$chat_id" != "$CHAT_ID" ]; then
+                log_message "Unauthorized: $chat_id"
+                continue
+            fi
+            
+            if echo "$update_data" | grep -q '"callback_query"'; then
+                local callback_id=$(echo "$update_data" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+                local callback_data=$(echo "$update_data" | grep -o '"data":"[^"]*"' | cut -d'"' -f4)
+                
+                if [ -n "$callback_data" ] && [ -n "$callback_id" ]; then
+                    handle_callback "$callback_data" "$callback_id" "$chat_id" &
+                fi
+            elif echo "$update_data" | grep -q '"message"'; then
+                local message_text=$(echo "$update_data" | grep -o '"text":"[^"]*"' | head -1 | cut -d'"' -f4)
+                
+                if [ -n "$message_text" ]; then
+                    handle_command "$message_text" "$chat_id" &
+                fi
+            fi
+        done
+        
+        sleep 1
+    done
+}
+
+cleanup() {
+    log_message "XIDZs Bot Stopped"
+    send_message "Bot Stopped at $(date '+%Y-%m-%d %H:%M:%S')" "$CHAT_ID"
+    exit 0
+}
+
+trap cleanup SIGTERM SIGINT
+
+if ! command -v curl >/dev/null 2>&1; then
+    echo "Error: curl required"
+    exit 1
+fi
+
+touch "$OFFSET_FILE" "$LOG_FILE"
+
+main

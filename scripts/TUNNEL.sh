@@ -2,75 +2,127 @@
 
 . ./scripts/INCLUDE.sh
 
-# openclash_core URL generation
-if [[ "${ARCH_3}" == "x86_64" ]]; then
-    meta_file="mihomo-linux-${ARCH_1}-compatible"
-else
-    meta_file="mihomo-linux-${ARCH_1}"
+if [ -z "$1" ]; then
+    log "ERROR" "Parameter required"
+    log "INFO" "Usage: $0 {openclash|nikki|insomclash|passwall|nikki-passwall|nikki-insomclash|openclash-nikki|openclash-insomclash|openclash-nikki-passwall|no-tunnel}"
+    exit 1
 fi
-openclash_core=$(curl -s "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest" | grep "browser_download_url" | grep -oE "https.*${meta_file}-v[0-9]+\.[0-9]+\.[0-9]+\.gz" | head -n 1)
 
-# Openclash IPK
-openclash_file_ipk="luci-app-openclash"
-openclash_file_ipk_down=$(curl -s "https://api.github.com/repos/vernesong/OpenClash/releases" | grep "browser_download_url" | grep -oE "https.*${openclash_file_ipk}.*.ipk" | head -n 1)
+PACKAGES="$1"
+log "INFO" "Packages to install: ${PACKAGES}"
 
-# passwall_core URL generation
-passwall_file_ipk="luci-24.10_luci-app-passwall"
-passwall_core_file_zip="passwall_packages_ipk_${ARCH_3}"
-passwall_file_ipk_down=$(curl -s "https://api.github.com/repos/xiaorouji/openwrt-passwall/releases" | grep "browser_download_url" | grep -oE "https.*${passwall_file_ipk}.*.ipk" | head -n 1)
-passwall_core_file_zip_down=$(curl -s "https://api.github.com/repos/xiaorouji/openwrt-passwall/releases" | grep "browser_download_url" | grep -oE "https.*${passwall_core_file_zip}.*.zip" | head -n 1)
+generate_openclash_urls() {
+    if [[ "${ARCH_3}" == "x86_64" ]]; then
+        meta_file="mihomo-linux-${ARCH_1}-compatible"
+    else
+        meta_file="mihomo-linux-${ARCH_1}"
+    fi
+    
+    openclash_core=$(curl -s "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest" | grep "browser_download_url" | grep -oE "https.*${meta_file}-v[0-9]+\.[0-9]+\.[0-9]+\.gz" | head -n 1)
+    openclash_file_ipk="luci-app-openclash"
+    openclash_file_ipk_down=$(curl -s "https://api.github.com/repos/de-quenx/OpenClash-x/releases" | grep "browser_download_url" | grep -oE "https.*${openclash_file_ipk}.*.ipk" | head -n 1)
+}
 
-# Nikki URL generation
-nikki_file_ipk="nikki_${ARCH_3}-openwrt-${VEROP}"
-nikki_file_ipk_down=$(curl -s "https://api.github.com/repos/rizkikotet-dev/OpenWrt-nikki-Mod/releases" | grep "browser_download_url" | grep -oE "https.*${nikki_file_ipk}.*.tar.gz" | head -n 1)
+generate_passwall_urls() {
+    passwall_file_ipk="luci-24.10_luci-app-passwall"
+    passwall_core_file_zip="passwall_packages_ipk_${ARCH_3}"
+    passwall_file_ipk_down=$(curl -s "https://api.github.com/repos/Openwrt-Passwall/openwrt-passwall/releases" | grep "browser_download_url" | grep -oE "https.*${passwall_file_ipk}.*.ipk" | head -n 1)
+    passwall_core_file_zip_down=$(curl -s "https://api.github.com/repos/Openwrt-Passwall/openwrt-passwall/releases" | grep "browser_download_url" | grep -oE "https.*${passwall_core_file_zip}.*.zip" | head -n 1)
+}
 
-# Function to download and setup OpenClash
+generate_nikki_urls() {
+    nikki_file_ipk="nikki_${ARCH_3}-openwrt-${VEROP}"
+    nikki_file_ipk_down=$(curl -s "https://api.github.com/repos/de-quenx/nikki-x/releases" | grep "browser_download_url" | grep -oE "https.*${nikki_file_ipk}.*.tar.gz" | head -n 1)
+}
+
+generate_insomclash_urls() {
+    insomclash_file_ipk="luci-app-insomclash"
+    insomclash_core_ipk="insomclash"
+    insomclash_file_ipk_down=$(curl -s "https://api.github.com/repos/bobbyunknown/FusionTunX/releases" | grep "browser_download_url" | grep -oE "https.*${insomclash_file_ipk}.*.ipk" | head -n 1)
+    insomclash_core_ipk_down=$(curl -s "https://api.github.com/repos/bobbyunknown/FusionTunX/releases" | grep "browser_download_url" | grep -oE "https.*insomclash_[^\"]*${ARCH_3}[^\"]*\.ipk" | head -n 1)
+}
+
 setup_openclash() {
+    generate_openclash_urls
     log "INFO" "Downloading OpenClash packages"
     ariadl "${openclash_file_ipk_down}" "packages/openclash.ipk"
     ariadl "${openclash_core}" "files/etc/openclash/core/clash_meta.gz"
-    gzip -d "files/etc/openclash/core/clash_meta.gz" || error_msg "Error: Failed to extract OpenClash package."
+    gzip -d "files/etc/openclash/core/clash_meta.gz" || error_msg "Error: Failed to extract clash_meta.."
+    chmod +x "files/etc/openclash/core/clash_meta" || error_msg "Error: Failed to sett permission for clash_meta"
+    chmod +x "files/etc/openclash/Country.mmdb" || error_msg "Error: Failed to set permission for Country.mmdb"
+    chmod +x "files/etc/openclash/GeoIP.dat" || error_msg "Error: Failed to set permission for GeoIP.dat"
+    chmod +x "files/etc/openclash/GeoSite.dat" || error_msg "Error: Failed to set permission for GeoSite.dat"
 }
 
-# Function to download and setup PassWall
 setup_passwall() {
+    generate_passwall_urls
     log "INFO" "Downloading PassWall packages"
     ariadl "${passwall_file_ipk_down}" "packages/passwall.ipk"
     ariadl "${passwall_core_file_zip_down}" "packages/passwall.zip"
     unzip -qq "packages/passwall.zip" -d packages && rm "packages/passwall.zip" || error_msg "Error: Failed to extract PassWall package."
 }
 
-# Function to download and setup Nikki
 setup_nikki() {
+    generate_nikki_urls
     log "INFO" "Downloading Nikki packages"
     ariadl "${nikki_file_ipk_down}" "packages/nikki.tar.gz"
     tar -xzvf "packages/nikki.tar.gz" -C packages > /dev/null 2>&1 && rm "packages/nikki.tar.gz" || error_msg "Error: Failed to extract Nikki package."
+    chmod +x "files/etc/nikki/run/Country.mmdb" || error_msg "Error: Failed to set permission for nikki Country.mmdb"
+    chmod +x "files/etc/nikki/run/GeoIP.dat" || error_msg "Error: Failed to set permission for nikki GeoIP.dat"
+    chmod +x "files/etc/nikki/run/GeoSite.dat" || error_msg "Error: Failed to set permission for nikki GeoSite.dat"
 }
 
-case "$1" in
+setup_insomclash() {
+    generate_insomclash_urls
+    log "INFO" "Downloading Insomclash packages"
+    ariadl "${insomclash_file_ipk_down}" "packages/luci-app-insomclash.ipk" || error_msg "Error: Failed to download luci-app-insomclash package."
+    ariadl "${insomclash_core_ipk_down}" "packages/insomclash.ipk" || error_msg "Error: Failed to download Insomclash core package."
+}
+
+case "${PACKAGES}" in
     openclash)
         setup_openclash
         ;;
     nikki)
         setup_nikki
         ;;
-    openclash-passwall)
-        setup_openclash
+    insomclash)
+        setup_insomclash
+        ;;
+    passwall)
         setup_passwall
         ;;
-    nikki-openclash)
+    nikki-insomclash)
         setup_nikki
+        setup_insomclash
+        ;;
+    nikki-passwall)
+        setup_nikki
+        setup_passwall
+        ;;
+    openclash-nikki)
         setup_openclash
+        setup_nikki
+        ;;
+    openclash-insomclash)
+        setup_openclash
+        setup_insomclash
+        ;;
+    openclash-nikki-passwall)
+        setup_openclash
+        setup_nikki
+        setup_passwall
         ;;
     no-tunnel)
+        log "INFO" "No tunnel packages will be installed"
         ;;
     *)
-        log "INFO" "Invalid option. Usage: $0 {openclash|nikki|openclash-passwall|nikki-openclash|no-tunnel}"
+        log "ERROR" "Invalid package option: ${PACKAGES}"
         exit 1
         ;;
 esac
 
-# Check final status
+# check status final
 if [ "$?" -ne 0 ]; then
     error_msg "Download or extraction failed."
     exit 1

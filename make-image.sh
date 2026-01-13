@@ -34,9 +34,9 @@ uqmi libqmi qmi-utils umbim libmbim mbim-utils luci-proto-qmi luci-proto-ncm \
 modemmanager luci-proto-modemmanager usb-modeswitch xmm-modem luci-proto-xmm"
 
 # MODEM TOOLS
-#PACKAGES+=" atinout modeminfo modemband sms-tool luci-app-modeminfo luci-app-modemband luci-app-sms-tool-js picocom minicom"
+PACKAGES+=" atinout modeminfo modemband sms-tool luci-app-modeminfo luci-app-modemband luci-app-sms-tool-js picocom minicom"
 #PACKAGES+=" modeminfo-serial-dell modeminfo-serial-fibocom modeminfo-serial-sierra modeminfo-serial-tw modeminfo-serial-xmm"
-PACKAGES+=" atinout modeminfo sms-tool luci-app-modeminfo picocom minicom"
+#PACKAGES+=" atinout modeminfo sms-tool luci-app-modeminfo picocom minicom"
 PACKAGES+=" modeminfo-serial-dell modeminfo-serial-fibocom modeminfo-serial-sierra modeminfo-serial-tw modeminfo-serial-xmm"
 
 # VPN TUNNEL
@@ -44,7 +44,7 @@ OPENCLASH="coreutils-nohup ipset ip-full libcap libcap-bin ruby ruby-yaml kmod-t
 NIKKI="nikki luci-app-nikki"
 INSOMCLASH="insomclash luci-app-insomclash"
 NEKO="php8 php8-cgi kmod-tun bash curl jq ip-full ca-bundle sing-box mihomo luci-app-neko"
-PASSWALL="microsocks dns2socks dns2tcp ipt2socks tcping chinadns-ng xray-core xray-plugin naiveproxy trojan-plus tuic-client luci-app-passwall"
+#PASSWALL="microsocks dns2socks dns2tcp ipt2socks tcping chinadns-ng xray-core xray-plugin naiveproxy trojan-plus tuic-client luci-app-passwall"
 
 add_tunnel_packages() {
     local option="$1"
@@ -106,7 +106,8 @@ PACKAGES+=" php8 php8-cli php8-fastcgi php8-fpm php8-mod-session php8-mod-ctype 
 #luci-app-lite-watchdog luci-app-poweroffdevice luci-app-ramfree luci-app-tinyfm luci-app-ttyd luci-app-mactodong"
 MISC+=" zoneinfo-core zoneinfo-asia jq htop httping adb openssh-sftp-server zram-swap screen \
 atc-fib-l8x0_gl atc-fib-fm350_gl luci-proto-atc luci-app-ipinfo \
-luci-app-poweroffdevice luci-app-ramfree luci-app-tinyfm luci-app-ttyd luci-app-mactodong"
+luci-app-poweroffdevice luci-app-tinyfm luci-app-ttyd luci-app-mactodong"
+#luci-app-ramfree
 
 # PROFILE SPECIFIC
 configure_profile_packages() {

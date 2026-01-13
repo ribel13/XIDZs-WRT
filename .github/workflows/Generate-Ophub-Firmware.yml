@@ -6,17 +6,17 @@ on:
       release_branch:
         description: "Select the release branch:"
         required: true
-        default: "openwrt:24.10.1"
+        default: "openwrt:24.10.5"
         type: choice
         options:
-          - openwrt:24.10.4
-          - openwrt:23.05.6
+          - openwrt:24.10.5
+          - openwrt:23.05.1
           - immortalwrt:24.10.4
-          - immortalwrt:23.05.6
+          - immortalwrt:23.05.7
       target:
         description: "Select device board"
         required: false
-        default: "Amlogic s905x4 advan"
+        default: "Amlogic s905x B860H"
         type: choice
         options:
           - all-device
@@ -38,13 +38,13 @@ on:
       tunnel:
         description: "Select VPN Client app:"
         required: true
-        default: "nikki-openclash"
+        default: "no-tunnel"
         type: choice
         options:
           - openclash
           - nikki
-          - openclash-passwall
-          - nikki-openclash
+          # openclash-passwall
+          # nikki-openclash
           - no-tunnel
       clean:
         description: "Do 'make clean' for each run"
@@ -545,7 +545,7 @@ jobs:
         if: steps.beforeupload.outputs.status == 'success'
         uses: softprops/action-gh-release@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: ${{ env.RELEASE_NAME }}

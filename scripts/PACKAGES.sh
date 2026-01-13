@@ -5,9 +5,9 @@
 # Define repositories with proper quoting
 declare -A REPOS
 REPOS+=(
-    ["OPENWRT"]="http://downloads.openwrt.org/releases/packages-${VEROP}/${ARCH_3}"
+    ["OPENWRT"]="https://downloads.openwrt.org/releases/packages-${VEROP}/${ARCH_3}"
     ["IMMORTALWRT"]="https://downloads.immortalwrt.org/releases/packages-${VEROP}/${ARCH_3}"
-    ["KIDDIN9"]="https://dl.openwrt.ai/releases/24.10/packages/aarch64_generic/kiddin9"
+    ["KIDDIN9"]="https://dl.openwrt.ai/releases/24.10/packages/${ARCH_3}/kiddin9"
     ["GSPOTX2F"]="https://github.com/gSpotx2f/packages-openwrt/raw/refs/heads/master/current"
     ["FANTASTIC"]="https://fantastic-packages.github.io/packages/releases/${VEROP}/packages/x86_64"
     ["DLLKIDS"]="https://op.dllkids.xyz/packages/${ARCH_3}"
@@ -45,11 +45,11 @@ packages_custom+=(
     #"luci-app-tailscale-community_|${REPOS[KIDDIN9]}"
     
     "luci-app-oled_|${REPOS[KIDDIN9]}"
-    "modemband_|${REPOS[KIDDIN9]}/packages"
-    "luci-app-ramfree_|${REPOS[KIDDIN9]}/luci"
-    "luci-app-modemband_|${REPOS[KIDDIN9]}/luci"
-    "luci-app-sms-tool-js_|${REPOS[KIDDIN9]}/luci"
-    "dns2tcp_|${REPOS[KIDDIN9]}/packages"
+    "modemband_|${REPOS[IMMORTALWRT]}/packages"
+    "luci-app-ramfree_|${REPOS[IMMORTALWRT]}/luci"
+    "luci-app-modemband_|${REPOS[IMMORTALWRT]}/luci"
+    "luci-app-sms-tool-js_|${REPOS[IMMORTALWRT]}/luci"
+    "dns2tcp_|${REPOS[IMMORTALWRT]}/packages"
     #"luci-theme-argon_|${REPOS[IMMORTALWRT]}/luci"
     #"luci-app-irqbalance_|${REPOS[IMMORTALWRT]}/luci"
     
@@ -58,7 +58,7 @@ packages_custom+=(
     "luci-app-internet-detector_|${REPOS[KIDDIN9]}"
     "internet-detector_|${REPOS[KIDDIN9]}"
     "internet-detector-mod-modem-restart_|${REPOS[KIDDIN9]}"
-    "luci-app-temp-status_|${REPOS[OPENWRT]}"
+    "luci-app-temp-status_|${REPOS[KIDDIN9]}"
     #"luci-theme-edge_|${REPOS[KIDDIN9]}"
     
     "luci-app-tinyfm_|https://api.github.com/repos/bobbyunknown/luci-app-tinyfm/releases/latest"

@@ -1,4 +1,4 @@
-name: Build Firmware Ophub
+name: Custom Build
 
 on:
   workflow_dispatch:

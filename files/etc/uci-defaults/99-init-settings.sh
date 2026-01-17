@@ -23,7 +23,7 @@ VNSTAT_CONF="/etc/vnstat.conf"
 INSTALL2_SH="/root/install2.sh"
 QUENXX_SH="/root/quenxx.sh"
 #ALPHA_CONF="/etc/config/alpha"
-#ARGON_CONF="/usr/share/ucode/luci/template/themes/argon/header.ut"
+ARGON_CONF="/usr/share/ucode/luci/template/themes/argon/header.ut"
 #RTA_CONF="/usr/lib/lua/luci/view/themes/rtawrt/header.htm"
 
 echo "$(date)"
@@ -58,12 +58,14 @@ echo "Setting root password..."
 
 echo "Configuring hostname and timezone..."
 uci batch <<EOF
-set system.@system[0].hostname='XIDZs-WRT'
+set system.@system[0].hostname='FREEDOM'
 set system.@system[0].timezone='WIB-7'
 set system.@system[0].zonename='Asia/Jakarta'
 delete system.ntp.server
-add_list system.ntp.server='pool.ntp.org'
-add_list system.ntp.server='id.pool.ntp.org'
+add_list system.ntp.server='0.id.pool.ntp.org'
+add_list system.ntp.server='1.id.pool.ntp.org'
+add_list system.ntp.server='2.id.pool.ntp.org'
+add_list system.ntp.server='3.id.pool.ntp.org'
 add_list system.ntp.server='time.google.com'
 commit system
 EOF
@@ -111,7 +113,7 @@ set wireless.@wifi-device[0].disabled='0'
 set wireless.@wifi-iface[0].disabled='0'
 set wireless.@wifi-iface[0].mode='ap'
 set wireless.@wifi-iface[0].encryption='psk2'
-set wireless.@wifi-iface[0].key='XIDZs2025'
+set wireless.@wifi-iface[0].key='freedom'
 set wireless.@wifi-device[0].country='ID'
 commit wireless
 EOF

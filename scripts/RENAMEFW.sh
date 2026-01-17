@@ -201,9 +201,9 @@ rename_firmware() {
                 fi
                 local new_name
                 if [[ -n "$kernel" ]]; then
-                    new_name="Fr33dom-${OP_BASE}-${BRANCH}-${replace}-${kernel}-${TUNNEL}-${DATE}.img.gz"
+                    new_name="FRDMx-${OP_BASE}-${BRANCH}-${replace}-${kernel}-${TUNNEL}-${DATE}.img.gz"
                 else
-                    new_name="Fr33dom-${OP_BASE}-${BRANCH}-${replace}-${TUNNEL}-${DATE}.img.gz"
+                    new_name="FRDMx-${OP_BASE}-${BRANCH}-${replace}-${TUNNEL}-${DATE}.img.gz"
                 fi
                 echo -e "${INFO} Renaming: $file → $new_name"
                 mv "$file" "$new_name" || {
@@ -215,7 +215,7 @@ rename_firmware() {
         for file in *"${search}"*.tar.gz; do
             if [[ -f "$file" ]]; then
                 local new_name
-                new_name="Fr33dom-${OP_BASE}-${BRANCH}-${replace}-${TUNNEL}-${DATE}.img.gz"
+                new_name="FRDMx-${OP_BASE}-${BRANCH}-${replace}-${TUNNEL}-${DATE}.img.gz"
                 echo -e "${INFO} Renaming: $file → $new_name"
                 mv "$file" "$new_name" || {
                     echo -e "${WARN} Failed to rename $file"

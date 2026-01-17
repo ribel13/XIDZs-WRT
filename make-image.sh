@@ -36,9 +36,6 @@ modemmanager luci-proto-modemmanager usb-modeswitch xmm-modem luci-proto-xmm"
 # MODEM TOOLS
 PACKAGES+=" atinout modeminfo modemband sms-tool luci-app-modeminfo luci-app-modemband luci-app-sms-tool-js picocom minicom"
 PACKAGES+=" modeminfo-serial-dell modeminfo-serial-fibocom modeminfo-serial-sierra modeminfo-serial-tw modeminfo-serial-xmm"
-#PACKAGES+=" atinout sms-tool picocom minicom"
-#PACKAGES+=" modeminfo-serial-dell modeminfo-serial-fibocom modeminfo-serial-sierra modeminfo-serial-tw modeminfo-serial-xmm"
-
 
 # VPN TUNNEL
 OPENCLASH="coreutils-nohup ipset ip-full libcap libcap-bin ruby ruby-yaml kmod-tun kmod-inet-diag kmod-nft-tproxy"
@@ -65,21 +62,21 @@ add_tunnel_packages() {
         #passwall)
             #PACKAGES+=" $PASSWALL"
             #;;
-        nikki-passwall)
-            PACKAGES+=" $NIKKI $PASSWALL"
-            ;;
-        nikki-insomclash)
-            PACKAGES+=" $NIKKI $INSOMCLASH"
-            ;;
-        openclash-nikki)
-            PACKAGES+=" $OPENCLASH $NIKKI"
-            ;;
-        openclash-insomclash)
-            PACKAGES+=" $OPENCLASH $INSOMCLASH"
-            ;;
-        openclash-nikki-passwall)
-            PACKAGES+=" $OPENCLASH $NIKKI $PASSWALL"
-            ;;
+        #nikki-passwall)
+            #PACKAGES+=" $NIKKI $PASSWALL"
+            #;;
+        #nikki-insomclash)
+            #PACKAGES+=" $NIKKI $INSOMCLASH"
+            #;;
+        #openclash-nikki)
+            #PACKAGES+=" $OPENCLASH $NIKKI"
+            #;;
+        #openclash-insomclash)
+            #PACKAGES+=" $OPENCLASH $INSOMCLASH"
+            #;;
+        #openclash-nikki-passwall)
+            #PACKAGES+=" $OPENCLASH $NIKKI $PASSWALL"
+            #;;
         *)
             # No tunnel
             ;;
@@ -90,7 +87,7 @@ add_tunnel_packages() {
 #PACKAGES+=" luci-app-diskman luci-app-mmconfig internet-detector internet-detector-mod-modem-restart luci-app-internet-detector"
 #PACKAGES+=" luci-app-3ginfo-lite luci-app-netmonitor luci-app-eqosplus ookla-speedtest"
 PACKAGES+=" luci-app-diskman internet-detector internet-detector-mod-modem-restart luci-app-internet-detector"
-PACKAGES+=" luci-app-3ginfo-lite luci-app-netmonitor"
+PACKAGES+=" luci-app-3ginfo-lite luci-app-netmonitor luci-app-mmconfig"
 
 # THEMES & REMOTE ACCESS
 #PACKAGES+=" luci-theme-argon luci-theme-rtawrt luci-theme-alpha"
@@ -122,13 +119,31 @@ configure_profile_packages() {
     fi
 }
 
+# PROFILE SPECIFIC
+configure_profile_packages() {
+    local profile_name="$1"
+
+    if [[ "$profile_name" == *"rpi-2"* ]] || [[ "$profile_name" == *"rpi-3"* ]] || [[ "$profile_name" == *"rpi-4"* ]] || [[ "$profile_name" == *"rpi-5"* ]]; then
+        PACKAGES+=" kmod-i2c-bcm2835 i2c-tools kmod-i2c-core kmod-i2c-gpio"
+    elif [[ "${ARCH_2:-}" == "x86_64" ]] || [[ "${ARCH_2:-}" == "i386" ]]; then
+        PACKAGES+=" kmod-iwlwifi iw-full pciutils wireless-tools"
+    fi
+
+    if [[ "${TYPE:-}" == "OPHUB" ]] || [[ "${TYPE:-}" == "ULO" ]]; then
+        PACKAGES+=" luci-app-amlogic btrfs-progs kmod-fs-btrfs"
+        EXCLUDED+=" -procd-ujail"
+    fi
+}
+
 # RELEASE SPECIFIC
 configure_release_packages() {
     if [[ "${BASE:-}" == "openwrt" ]]; then
-        MISC+=" wpad-openssl luci-app-temp-status"
+        MISC+=" wpad-openssl"
+        #MISC+=" wpad-openssl iw iwinfo wireless-regdb kmod-cfg80211 kmod-mac80211 luci-app-temp-status"
         EXCLUDED+=" -dnsmasq"
     elif [[ "${BASE:-}" == "immortalwrt" ]]; then
         MISC+=" wpad-openssl"
+        #MISC+=" wpad-openssl iw iwinfo wireless-regdb kmod-cfg80211 kmod-mac80211"
         EXCLUDED+=" -dnsmasq -cpusage -automount -libustream-openssl -default-settings-chn -luci-i18n-base-zh-cn"
         
         if [[ "${ARCH_2:-}" == "x86_64" ]] || [[ "${ARCH_2:-}" == "i386" ]]; then

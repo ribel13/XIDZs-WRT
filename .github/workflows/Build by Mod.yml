@@ -361,7 +361,7 @@ jobs:
             "Amlogic s905x B860H")
               TARGET_BUILD="s905x-b860h"
               ##KERNEL="5.15.y_6.1.y_6.6.y"
-              KERNEL="5.15.y_6.1.y_6.6.y_6.12.y"
+              KERNEL="6.1.y_6.6.y_6.12.y"
               echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV
               echo "KERNEL=$KERNEL" >> $GITHUB_ENV
               ;;
@@ -373,7 +373,8 @@ jobs:
               ;;
             "Amlogic s905x HG680P")
               TARGET_BUILD="s905x"
-              KERNEL="5.15.y_6.1.y_6.6.y"
+              ##KERNEL="5.15.y_6.1.y_6.6.y"
+              KERNEL="6.1.y_6.6.y_6.12.y"
               echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV
               echo "KERNEL=$KERNEL" >> $GITHUB_ENV
               ;;
@@ -628,7 +629,7 @@ jobs:
           # Move and rename output files
           for file in bin/targets/"${TARGET_SYSTEM}"/*-rootfs.tar.gz; do
             if [ -f "$file" ]; then
-              new_name="Freedom-$(basename "$file" -rootfs.tar.gz)_${{ env.TUNNEL }}-rootfs.tar.gz"
+              new_name="FRDMx-$(basename "$file" -rootfs.tar.gz)_${{ env.TUNNEL }}-rootfs.tar.gz"
               mv "$file" compiled_images/$new_name
             fi
           done

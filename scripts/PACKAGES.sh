@@ -2,14 +2,13 @@
 
 . ./scripts/INCLUDE.sh
 
-# Repository URLs based on version
+# Repository definitions
 if [[ "${VEROP}" == "25.12" ]]; then
     KIDDIN9_REPO="https://dl.openwrt.ai/releases/25.12/packages/${ARCH_3}/kiddin9"
 else
     KIDDIN9_REPO="https://dl.openwrt.ai/releases/24.10/packages/${ARCH_3}/kiddin9"
 fi
 
-# Define all repositories
 declare -A REPOS
 REPOS+=(
     ["OPENWRT"]="https://downloads.openwrt.org/releases/packages-${VEROP}/${ARCH_3}"
@@ -22,10 +21,9 @@ REPOS+=(
     ["OPENWRTRU"]="https://openwrt.132lan.ru/packages/${VEROP}/packages/${ARCH_3}/modemfeed"
 )
 
-# Custom package list with format: "package_name|repository_url"
+# Define package categories with improved structure
 declare -a packages_custom
 packages_custom+=(
-    # Modem info packages
     "modeminfo_|${REPOS[KIDDIN9]}"
     "luci-app-modeminfo_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-tw_|${REPOS[KIDDIN9]}"
@@ -34,36 +32,42 @@ packages_custom+=(
     "modeminfo-serial-xmm_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-fibocom_|${REPOS[KIDDIN9]}"
     "modeminfo-serial-sierra_|${REPOS[KIDDIN9]}"
+    #"luci-app-mmconfig_|${REPOS[OPENWRTRU]}"
     
-    # System utilities
     "atinout_|${REPOS[KIDDIN9]}"
     "luci-app-diskman_|${REPOS[KIDDIN9]}"
+    #"luci-app-poweroff_|${REPOS[DLLKIDS]}"
     "luci-app-poweroffdevice_|${REPOS[KIDDIN9]}" 
+    #"xmm-modem_|${REPOS[KIDDIN9]}"
     
-    # Monitoring & watchdog
     "luci-app-lite-watchdog_|${REPOS[KIDDIN9]}"
+    #"luci-app-speedtest-web_|${REPOS[KIDDIN9]}"
+    #"luci-app-netspeedtest_|${REPOS[KIDDIN9]}"
+    #"ookla-speedtest_|${REPOS[KIDDIN9]}"
+    #"luci-app-fancontrol_|${REPOS[KIDDIN9]}"
     "luci-app-atcommands_|${REPOS[KIDDIN9]}"
-    
-    # VPN services
+    #"tailscale_|${REPOS[KIDDIN9]}"
     "tailscale_|${REPOS[OPENWRT]}/packages"
+    #"tailscale_|${REPOS[KYARUCLOUD_IMMORTALWRT]}/packages"
+    #"luci-app-tailscale-community_|${REPOS[KIDDIN9]}"
     
-    # Display & interface
     "luci-app-oled_|${REPOS[KIDDIN9]}"
     "modemband_|${REPOS[KYARUCLOUD_IMMORTALWRT]}/packages"
     "luci-app-ramfree_|${REPOS[KYARUCLOUD_IMMORTALWRT]}/luci"
     "luci-app-modemband_|${REPOS[KYARUCLOUD_IMMORTALWRT]}/luci"
     "luci-app-sms-tool-js_|${REPOS[KYARUCLOUD_IMMORTALWRT]}/luci"
     "dns2tcp_|${REPOS[KYARUCLOUD_IMMORTALWRT]}/packages"
+    #"luci-theme-argon_|${REPOS[KYARUCLOUD_IMMORTALWRT]}/luci"
+    #"luci-app-irqbalance_|${REPOS[KYARUCLOUD_IMMORTALWRT]}/luci"
     
-    # Network tools
     "ookla-speedtest_|${REPOS[KIDDIN9]}"
     "luci-app-eqosplus_|${REPOS[KIDDIN9]}"
     "luci-app-internet-detector_|${REPOS[KIDDIN9]}"
     "internet-detector_|${REPOS[KIDDIN9]}"
     "internet-detector-mod-modem-restart_|${REPOS[KIDDIN9]}"
     "luci-app-temp-status_|${REPOS[KIDDIN9]}"
+    #"luci-theme-edge_|${REPOS[KIDDIN9]}"
     
-    # GitHub releases (latest)
     "luci-app-tinyfm_|https://api.github.com/repos/bobbyunknown/luci-app-tinyfm/releases/latest"
     "luci-app-droidnet_|https://api.github.com/repos/animegasan/luci-app-droidmodem/releases/latest"
     "luci-theme-alpha_|https://api.github.com/repos/de-quenx/luci-theme-alpha/releases/latest"
@@ -71,9 +75,9 @@ packages_custom+=(
     "luci-app-ipinfo_|https://api.github.com/repos/bobbyunknown/luci-app-ipinfo/releases/latest"
     "luci-app-netmonitor_|https://api.github.com/repos/de-quenx/luci-app-netmonitor/releases/latest"
     "luci-theme-argon_|https://api.github.com/repos/de-quenx/luci-theme-argon/releases/latest"
+    #"luci-theme-rtawrt_|https://api.github.com/repos/de-quenx/luci-theme-rtawrt/releases/latest"
 )
 
-# Add Amlogic packages for specific device types
 if [[ "${TYPE}" == "OPHUB" || "${TYPE}" == "ULO" ]]; then
     log "INFO" "Add Packages Amlogic In ${TYPE}.."
     packages_custom+=(
@@ -81,26 +85,23 @@ if [[ "${TYPE}" == "OPHUB" || "${TYPE}" == "ULO" ]]; then
     )
 fi
 
-# Verify downloaded packages
+# Enhanced package verification function
 verify_packages() {
     local pkg_dir="packages"
     local -a failed_packages=()
     local -a package_list=("${!1}")
-    local pkg_ext=$(get_package_extension "${VEROP}")
     
     if [[ ! -d "$pkg_dir" ]]; then
         error_msg "Package directory not found: $pkg_dir"
         return 1
     fi
     
-    # Count packages with correct extension
-    local total_found=$(find "$pkg_dir" -name "*.${pkg_ext}" | wc -l)
-    log "INFO" "Found $total_found package files with .$pkg_ext extension"
+    local total_found=$(find "$pkg_dir" \( -name "*.ipk" -o -name "*.apk" \) | wc -l)
+    log "INFO" "Found $total_found package files"
     
-    # Check each package
     for package in "${package_list[@]}"; do
         local pkg_name="${package%%|*}"
-        if ! find "$pkg_dir" -name "${pkg_name}*.${pkg_ext}" -print -quit | grep -q .; then
+        if ! find "$pkg_dir" \( -name "${pkg_name}*.ipk" -o -name "${pkg_name}*.apk" \) -print -quit | grep -q .; then
             failed_packages+=("$pkg_name")
         fi
     done
@@ -108,14 +109,14 @@ verify_packages() {
     local failed=${#failed_packages[@]}
     
     if ((failed > 0)); then
-        log "WARNING" "$failed packages failed to download with .$pkg_ext format:"
+        log "WARNING" "$failed packages failed to download:"
         for pkg in "${failed_packages[@]}"; do
             log "WARNING" "- $pkg"
         done
         return 1
     fi
     
-    log "SUCCESS" "All packages downloaded successfully with .$pkg_ext format"
+    log "SUCCESS" "All packages downloaded successfully"
     return 0
 }
 
@@ -123,7 +124,7 @@ verify_packages() {
 main() {
     local rc=0
     
-    # Download custom packages
+    # Download Custom packages
     log "INFO" "Downloading Custom packages..."
     download_packages packages_custom || rc=1
     
@@ -140,7 +141,7 @@ main() {
     return $rc
 }
 
-# Execute main if script is run directly
+# Run main function if script is not sourced
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     main "$@"
 fi

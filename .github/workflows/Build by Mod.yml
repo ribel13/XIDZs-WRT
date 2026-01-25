@@ -12,6 +12,7 @@ on:
           - openwrt:24.10.5
           - openwrt:24.10.4
           - openwrt:23.05.6
+          - openwrt:23.05.2
           - immortalwrt:24.10.4
           - immortalwrt:23.05.7
           - immortalwrt:23.05.2
@@ -361,20 +362,20 @@ jobs:
             "Amlogic s905x B860H")
               TARGET_BUILD="s905x-b860h"
               ##KERNEL="5.15.y_6.1.y_6.6.y"
-              KERNEL="6.1.y_6.6.y_6.12.y"
+              KERNEL="6.1.y_6.6.y"
               echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV
               echo "KERNEL=$KERNEL" >> $GITHUB_ENV
               ;;
             "Amlogic s905x B860H MODSDCARD")
               TARGET_BUILD="s905x-b860h"
-              KERNEL="5.15.y_6.1.y_6.6.y"
+              KERNEL="6.1.y_6.6.y"
               echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV
               echo "KERNEL=$KERNEL" >> $GITHUB_ENV
               ;;
             "Amlogic s905x HG680P")
               TARGET_BUILD="s905x"
-              ##KERNEL="5.15.y_6.1.y_6.6.y"
-              KERNEL="6.1.y_6.6.y_6.12.y"
+              ##KERNEL="5.15_6.1.y_6.6.y"
+              KERNEL="6.1.y_6.6.y"
               echo "TARGET_BUILD=$TARGET_BUILD" >> $GITHUB_ENV
               echo "KERNEL=$KERNEL" >> $GITHUB_ENV
               ;;

@@ -113,7 +113,7 @@ set wireless.@wifi-device[0].disabled='0'
 set wireless.@wifi-iface[0].disabled='0'
 set wireless.@wifi-iface[0].mode='ap'
 set wireless.@wifi-iface[0].encryption='psk2'
-set wireless.@wifi-iface[0].key='freedom'
+set wireless.@wifi-iface[0].key='FRDMx'
 set wireless.@wifi-device[0].country='ID'
 commit wireless
 EOF
@@ -174,13 +174,13 @@ sed -i '/exit 0/i\
 
 # UI customizations
 echo "Modifying UI elements..."
-sed -i "s#_('Firmware Version'),(L.isObject(boardinfo.release)?boardinfo.release.description+' / ':'')+(luciversion||''),#_('Firmware Version'),(L.isObject(boardinfo.release)?boardinfo.release.description+' | xidz_x':''),#g" "$SYSTEM_JS"
+sed -i "s#_('Firmware Version'),(L.isObject(boardinfo.release)?boardinfo.release.description+' / ':'')+(luciversion||''),#_('Firmware Version'),(L.isObject(boardinfo.release)?boardinfo.release.description+' | FRDMx':''),#g" "$SYSTEM_JS"
 sed -i -E 's/icons\/port_%s\.(svg|png)/icons\/port_%s.gif/g' "$PORTS_JS"
 mv "$PORTS_JS" "$NEW_PORTS_JS"
 
 # System customizations
 echo "Applying system.."
-sed -i -e 's/\[ -f \/etc\/banner \] && cat \/etc\/banner/#&/' -e 's/\[ -n \"\$FAILSAFE\" \] && cat \/etc\/banner.failsafe/& || \/usr\/bin\/syntax/' "$PROFILE"
+sed -i -e 's/\[ -f \/etc\/banner \] && cat \/etc\/banner/#&/' -e 's/\[ -n \"\$FAILSAFE\" \] && cat \/etc\/banner.failsafe/& || \/usr\/bin\/chnrot/' "$PROFILE"
 "$XIDZS" disable
 
 # Execute scripts

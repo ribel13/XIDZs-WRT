@@ -3,7 +3,7 @@
 </h3>
 <h4 align="center">23.05.5 | 24.10.0</h4>
 <p align="center">IMAGEBUILDER | ULOBUILDER</p>
-<p align="center">SCRIPT CUSTOM BY FRIWRT | RTA-WRT</p>
+<p align="center">by XZidz</p>
 
 **Credits**
 ---
